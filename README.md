@@ -19,15 +19,15 @@ pipeline-output/           Local pipeline run artefacts (gitignored)
 
 ## Tech Stack (Target App)
 
-| Layer | Technology |
-|---|---|
-| Framework | React Native 0.86.0 |
-| Language | TypeScript 5 (`strict: true`) |
-| State | Redux Toolkit + Redux-Saga |
-| Navigation | React Navigation |
-| Auth | react-native-keychain + biometrics |
-| HTTP | axios via typed `ApiService` |
-| Tests | Jest + react-test-renderer |
+| Layer      | Technology                         |
+| ---------- | ---------------------------------- |
+| Framework  | React Native 0.86.0                |
+| Language   | TypeScript 5 (`strict: true`)      |
+| State      | Redux Toolkit + Redux-Saga         |
+| Navigation | React Navigation                   |
+| Auth       | react-native-keychain + biometrics |
+| HTTP       | axios via typed `ApiService`       |
+| Tests      | Jest + react-test-renderer         |
 
 ---
 
@@ -135,6 +135,7 @@ All standards are enforced via instruction files in `.github/instructions/` and 
 Gate behaviour, model assignments, and blocking rules are controlled by `.github/pipeline-config.yaml`.
 
 Key rules:
+
 - Gates with `allow_skip: false` are **mandatory** — they cannot be skipped for any reason including token optimisation
 - Gates with `blocking: true` will halt the pipeline on failure
 - Conditional gates (e.g. G9 release readiness) execute only when their condition is met
