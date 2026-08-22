@@ -1,0 +1,39 @@
+@startuml redux-{{feature_name}}
+!theme plain
+skinparam rectangleBackgroundColor #f8f8f8
+
+rectangle "{{feature}}Slice" {
+  rectangle "State" as State {
+    (status: 'idle' | 'loading' | 'success' | 'error')
+    (data: {{FeatureData}} | null)
+    (error: AppError | null)
+  }
+  rectangle "Actions" as Actions {
+    (fetch{{Feature}}Action)
+    ({{feature}}Success)
+    ({{feature}}Failure)
+    (reset{{Feature}})
+  }
+  rectangle "Selectors" as Selectors {
+    (select{{Feature}}Data)
+    (select{{Feature}}IsLoading)
+    (select{{Feature}}Error)
+  }
+}
+
+rectangle "{{feature}}Saga" {
+  (watchFetch{{Feature}}: takeLeading)
+  (fetch{{Feature}}Saga → service → dispatch success/failure)
+}
+
+rectangle "use{{Feature}}Screen Hook" {
+  (dispatches fetch{{Feature}}Action on mount)
+  (reads state via named selectors)
+  (isLoading = status === 'idle' || status === 'loading')
+}
+
+Actions --> "{{feature}}Saga" : triggers saga
+"{{feature}}Saga" --> Actions : dispatches result
+Selectors --> "use{{Feature}}Screen Hook" : provides state
+"use{{Feature}}Screen Hook" --> Actions : dispatches
+@enduml

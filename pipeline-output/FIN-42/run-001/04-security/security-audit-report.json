@@ -1,0 +1,169 @@
+{
+  "agent": "sdlc-g2.5-security-specialist",
+  "gate_id": "SDLC_G2.5_SECURITY",
+  "executed_at": "2026-07-17T00:00:00.000Z",
+  "feature": "FIN-42",
+  "files_audited": 5,
+  "total_findings": 4,
+  "critical": 0,
+  "high": 0,
+  "medium": 2,
+  "low": 2,
+  "blocking": false,
+  "status": "WARN",
+  "gate_result": "WARN",
+  "isError": false,
+  "errorCategory": null,
+  "isRetryable": false,
+  "escalationRequired": false,
+  "estimatedFixTime": "1-2 hours",
+  "blockingIssues": [],
+  "description": "Security audit for FIN-42 LoginScreen. No Critical or High findings. 2 Medium and 2 Low findings identified. Gate passes with warnings.",
+  "findings": [
+    {
+      "id": "SEC-001",
+      "file": "src/auth/screens/LoginScreen/useLoginScreen.ts",
+      "line": 85,
+      "severity": "medium",
+      "category": "Input Validation",
+      "cwe": "CWE-20",
+      "owasp": "M4 — Insufficient Input/Output Validation",
+      "title": "OTP not validated as exactly 6 digits before dispatch",
+      "description": "handleAuthenticate checks only that otpDisplay is truthy (non-empty string) before dispatching authenticateStart. isAuthEnabled is set to otpDisplay.length > 0. An OTP of 1–5 characters can reach the saga and service layer, which then throws at the service boundary rather than being caught by a client-side guard.",
+      "code_snippet": "const handleAuthenticate = (): void => {\n  if (!otpDisplay) { return; }\n  analytics.track(ACTION_EVENTS.LOGIN_ATTEMPTED);\n  dispatch(authenticateStart({ mobileNumber: mobileRef.current, otp: otpRef.current, userType: selectedUserType }));\n};",
+      "impact": "Malformed authentication requests reach the service/API layer. In a production system this could cause unpredictable server behaviour or trigger account lockout on partial OTP attempts.",
+      "exploit_scenario": "A user types 3 digits and triggers authentication. The saga dispatches, the service throws 'Invalid OTP', and the error surfaces as an authStatus error. No bypass, but unnecessary network calls and unhandled partial input.",
+      "fix": "Add `if (otpDisplay.length !== 6) { return; }` in handleAuthenticate, and set isAuthEnabled to `otpDisplay.length === 6`.",
+      "references": [
+        "https://owasp.org/www-project-mobile-top-10/2023-risks/m4-insufficient-input-output-validation"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "file": "src/auth/screens/LoginScreen/useLoginScreen.ts",
+      "line": 65,
+      "severity": "medium",
+      "category": "Input Validation",
+      "cwe": "CWE-20",
+      "owasp": "M4 — Insufficient Input/Output Validation",
+      "title": "Mobile number not validated as numeric-only before dispatch",
+      "description": "handleGetOtp validates only that mobileDisplay.length === 10. handleMobileChange accepts any string without stripping non-numeric characters. A 10-character alphanumeric string (e.g. 'AAAA123456') passes the guard and is dispatched as mobileNumber to the saga and service.",
+      "code_snippet": "const handleGetOtp = (): void => {\n  if (mobileDisplay.length !== 10) { return; }\n  analytics.track(ACTION_EVENTS.OTP_ATTEMPTED);\n  dispatch(requestOtpStart({ mobileNumber: mobileRef.current, userType: selectedUserType }));\n};",
+      "impact": "Non-numeric mobile numbers propagate to the service layer. In production, this could cause schema validation failures on the server, injection risk if the server interpolates the value into queries/messages without sanitisation, or user confusion.",
+      "exploit_scenario": "An attacker crafts a 10-character string containing special characters. With a real backend this could be used as a probe for injection vulnerabilities in mobile number fields.",
+      "fix": "Filter input in handleMobileChange: `mobileRef.current = text.replace(/\\D/g, ''); setMobileDisplay(mobileRef.current);`. Alternatively, use a numeric-only keyboard (`keyboardType='numeric'`) and enforce `/^\\d{10}$/` in the guard.",
+      "references": [
+        "https://owasp.org/www-project-mobile-top-10/2023-risks/m4-insufficient-input-output-validation"
+      ]
+    },
+    {
+      "id": "SEC-003",
+      "file": "src/auth/store/authSaga.ts",
+      "line": 45,
+      "severity": "low",
+      "category": "Insecure Data Storage",
+      "cwe": "CWE-312",
+      "owasp": "M9 — Insecure Data Storage",
+      "title": "Auth token from authenticate() response is discarded — no Keychain storage",
+      "description": "authenticateWorker calls `yield call(authenticate, request)` but ignores the return value entirely. The AuthenticateResponse.token field (populated as 'mock-jwt-token-abc123' in the mock) is neither stored in Keychain nor in Redux. This is acceptable for a POC mock, but the pattern must be corrected before production: the token must be stored via react-native-keychain and never in AsyncStorage, MMKV, or Redux state.",
+      "code_snippet": "yield call(authenticate, request);\nyield put(authenticateSuccess());",
+      "impact": "In production, discarding the token means the user cannot make authenticated API calls after login. If a developer fixes this by writing the token to MMKV or Redux state instead of Keychain, it becomes a Critical M9 finding.",
+      "exploit_scenario": "Not exploitable in the current mock. In a production port, if the fix is to write the token to Redux state or MMKV, the token becomes readable by any code in the JS realm and extractable via backup or debugger.",
+      "fix": "Capture the response: `const response = (yield call(authenticate, request)) as AuthenticateResponse;` then store the token using react-native-keychain: `await Keychain.setGenericPassword('auth_token', response.token);`. Dispatch authenticateSuccess() only after successful Keychain write.",
+      "references": [
+        "https://owasp.org/www-project-mobile-top-10/2023-risks/m9-insecure-data-storage"
+      ]
+    },
+    {
+      "id": "SEC-004",
+      "file": "src/auth/services/authService.ts",
+      "line": 30,
+      "severity": "low",
+      "category": "Privacy Controls",
+      "cwe": "CWE-359",
+      "owasp": "M6 — Inadequate Privacy Controls",
+      "title": "Mobile number embedded in OTP response message string",
+      "description": "The requestOtp mock returns `message: \\`OTP sent to ${request.mobileNumber}\\``. This message propagates as part of RequestOtpResponse and could surface in UI toast/snackbar text, error logs, or analytics events if the caller forwards it without sanitisation.",
+      "code_snippet": "return {\n  success: true,\n  message: `OTP sent to ${request.mobileNumber}`,\n};",
+      "impact": "Mobile numbers are PII. If this message is logged or sent to analytics (e.g., passed to an error reporter on failure), it constitutes a PII leakage. Low risk in the current mock since the saga does not use the response, but the pattern should not be carried to production.",
+      "exploit_scenario": "A future developer logs the OTP response on failure, inadvertently capturing the mobile number in crash reports or remote logging services.",
+      "fix": "Replace with a generic message: `message: 'OTP sent successfully'`. In production, the server response message should never echo back PII.",
+      "references": [
+        "https://owasp.org/www-project-mobile-top-10/2023-risks/m6-inadequate-privacy-controls"
+      ]
+    }
+  ],
+  "passed_checks": [
+    {
+      "check": "M1 — No hardcoded API keys, passwords, or real credentials in source",
+      "result": "PASS",
+      "note": "Mock token 'mock-jwt-token-abc123' is a clearly-labelled POC placeholder, not a real credential."
+    },
+    {
+      "check": "M10 — react-native-get-random-values polyfill loaded before AppRegistry in index.js",
+      "result": "PASS",
+      "note": "index.js imports react-native-get-random-values as the very first statement."
+    },
+    {
+      "check": "M10 — react-native-get-random-values imported at top of authSaga.ts",
+      "result": "PASS",
+      "note": "authSaga.ts has `import 'react-native-get-random-values'` as line 1."
+    },
+    {
+      "check": "M10 — No Math.random() usage in any audited file",
+      "result": "PASS",
+      "note": "No Math.random() call found across all 5 audited files."
+    },
+    {
+      "check": "M9 — Redux state contains no sensitive data",
+      "result": "PASS",
+      "note": "authSlice state fields are: otpStatus, authStatus, error, otpRequested. No mobile number, OTP, or token."
+    },
+    {
+      "check": "M9 — Mobile number and OTP stored in useRef (never Redux)",
+      "result": "PASS",
+      "note": "mobileRef and otpRef are useRef<string>('') — in-memory only, never persisted or dispatched to Redux store."
+    },
+    {
+      "check": "M1/M3 — No sensitive data (MPIN, OTP, mobile number) passed via navigation params",
+      "result": "PASS",
+      "note": "No navigation.navigate calls found in the audited hook or service files."
+    },
+    {
+      "check": "M3 — resetAuthState clears all state after successful authentication",
+      "result": "PASS",
+      "note": "useLoginScreen useEffect dispatches resetAuthState() and clears mobileRef, otpRef, mobileDisplay, otpDisplay on authStatus === 'success'."
+    },
+    {
+      "check": "M6 — Analytics events contain no PII",
+      "result": "PASS",
+      "note": "Tracked events are SCREEN_EVENTS.LOGIN, ACTION_EVENTS.USER_TYPE_SELECTED, ACTION_EVENTS.OTP_ATTEMPTED, ACTION_EVENTS.LOGIN_ATTEMPTED — no mobile numbers, OTPs, or user identifiers."
+    },
+    {
+      "check": "M5 — No HTTP URLs or ApiService bypasses",
+      "result": "PASS",
+      "note": "Mock service uses no network calls. No http:// URLs found. Applicable check deferred to production integration."
+    },
+    {
+      "check": "M4 — Mobile number length guard in handleGetOtp",
+      "result": "PASS",
+      "note": "handleGetOtp returns early if mobileDisplay.length !== 10."
+    }
+  ],
+  "summary_by_severity": {
+    "critical": 0,
+    "high": 0,
+    "medium": 2,
+    "low": 2
+  },
+  "summary_by_category": {
+    "Input Validation": 2,
+    "Insecure Data Storage": 1,
+    "Privacy Controls": 1
+  },
+  "owasp_categories_found": [
+    "M4 — Insufficient Input/Output Validation",
+    "M9 — Insecure Data Storage",
+    "M6 — Inadequate Privacy Controls"
+  ]
+}

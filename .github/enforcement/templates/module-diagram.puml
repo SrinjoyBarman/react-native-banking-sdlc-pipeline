@@ -1,0 +1,37 @@
+@startuml module-{{feature_name}}
+!theme plain
+skinparam packageStyle rectangle
+
+package "FinVault App" {
+  package "{{primary_module}}" {
+    [{{FeatureScreen}}] as Screen
+    [use{{Feature}}] as Hook
+    [{{feature}}Saga] as Saga
+    [{{feature}}Service] as Service
+    [{{feature}}Slice] as Slice
+  }
+
+  package "store" {
+    [Redux Store] as Store
+  }
+
+  package "core" {
+    [ApiService] as API
+  }
+
+  package "shared" {
+    [Shared Components] as Shared
+  }
+}
+
+Screen --> Hook : uses
+Hook --> Store : dispatches / selects
+Hook --> Shared : renders
+Slice --> Store : registered in
+Saga --> Service : calls
+Service --> API : HTTP via getApiService()
+
+note right of Screen : Logic-free — delegates to Hook
+note right of Hook : Dispatches actions, returns state
+note right of Saga : takeLeading / takeLatest
+@enduml

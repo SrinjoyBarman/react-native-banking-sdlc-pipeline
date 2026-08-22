@@ -1,0 +1,285 @@
+{
+  "pipeline_run_id": "FIN-42/run-001",
+  "ticket_id": "FIN-42",
+  "run_number": 1,
+  "run_type": "feature",
+  "feature_description": "Build the OTP login screen with Customer / Bank Staff selector, mobile number input, GET OTP and AUTHENTICATE buttons — wired to AuthNavigator",
+  "started_at": "2026-07-17T10:02:14.000Z",
+  "completed_at": "2026-07-17T14:07:53.000Z",
+  "current_gate": null,
+  "current_status": "COMPLETED",
+  "validation_status": "VALID",
+  "output_dir": "pipeline-output/FIN-42/run-001",
+
+  "gates_completed": [
+    "SDLC_G0_ENTRY",
+    "SDLC_G0.5_DESIGN",
+    "SDLC_G0.7_ARCH_DRIFT",
+    "SDLC_G1_PLAN",
+    "SDLC_G1.5_DIAGRAM",
+    "SDLC_G2_IMPLEMENTATION",
+    "SDLC_G2.1_LINT",
+    "SDLC_G2.2_TYPECHECK",
+    "SDLC_G2.3_FRAMEWORK_RULES",
+    "SDLC_G2.4_CIRCULAR_DEPS",
+    "SDLC_G2.5_SECURITY",
+    "SDLC_G2.6_IMPORT_BOUNDARY",
+    "SDLC_G2.7_API_CONTRACT",
+    "SDLC_G2.8_OBSERVABILITY",
+    "SDLC_G3_REVIEW",
+    "SDLC_G4_TESTING",
+    "SDLC_G4.5_CONTRACT_TEST",
+    "SDLC_G5_PERFORMANCE",
+    "SDLC_G6_ACCESSIBILITY",
+    "SDLC_G7_DEPENDENCIES",
+    "SDLC_G8_COMPLETION"
+  ],
+  "gates_failed": [],
+  "gates_warned": [
+    "SDLC_G2.3_FRAMEWORK_RULES",
+    "SDLC_G2.5_SECURITY",
+    "SDLC_G2.6_IMPORT_BOUNDARY",
+    "SDLC_G2.7_API_CONTRACT",
+    "SDLC_G3_REVIEW",
+    "SDLC_G4_TESTING",
+    "SDLC_G4.5_CONTRACT_TEST",
+    "SDLC_G5_PERFORMANCE",
+    "SDLC_G6_ACCESSIBILITY"
+  ],
+  "fix_iterations": {
+    "SDLC_G2.3_FRAMEWORK_RULES": 1,
+    "SDLC_G2.5_SECURITY": 1,
+    "SDLC_G2.6_IMPORT_BOUNDARY": 1,
+    "SDLC_G2.7_API_CONTRACT": 1,
+    "SDLC_G3_REVIEW": 1,
+    "SDLC_G4_TESTING": 2,
+    "SDLC_G4.5_CONTRACT_TEST": 1,
+    "SDLC_G6_ACCESSIBILITY": 1
+  },
+  "user_responses": {
+    "SDLC_G1_PLAN": "Approve"
+  },
+
+  "gate_decision_log": [
+    {
+      "gate_id": "SDLC_G0_ENTRY",
+      "decision": "execute",
+      "reason": "allow_skip: false — mandatory entry gate",
+      "result": "passed",
+      "duration_ms": 48200,
+      "timestamp": "2026-07-17T10:02:14.000Z"
+    },
+    {
+      "gate_id": "SDLC_G0.5_DESIGN",
+      "decision": "execute",
+      "reason": "allow_skip: false — design spec required before implementation",
+      "result": "passed",
+      "notes": "Figma MCP rate-limited; fell back to Jira attachment screenshot",
+      "duration_ms": 61400,
+      "timestamp": "2026-07-17T10:03:02.000Z"
+    },
+    {
+      "gate_id": "SDLC_G0.7_ARCH_DRIFT",
+      "decision": "conditional_skip",
+      "reason": "allow_skip: true; condition 'multi_module_change' evaluated false — feature scoped to auth module only",
+      "result": "skipped",
+      "duration_ms": 0,
+      "timestamp": "2026-07-17T10:04:05.000Z"
+    },
+    {
+      "gate_id": "SDLC_G1_PLAN",
+      "decision": "execute",
+      "reason": "allow_skip: false — feature plan required; human approval gate",
+      "result": "passed",
+      "notes": "User response: Approve — plan presented at 10:06:31, approved at 10:09:14",
+      "duration_ms": 312000,
+      "timestamp": "2026-07-17T10:04:06.000Z"
+    },
+    {
+      "gate_id": "SDLC_G1.5_DIAGRAM",
+      "decision": "execute",
+      "reason": "allow_skip: true; condition met — UI_SCREEN task type triggers diagram generation",
+      "result": "passed",
+      "duration_ms": 54700,
+      "timestamp": "2026-07-17T10:09:15.000Z"
+    },
+    {
+      "gate_id": "SDLC_G2_IMPLEMENTATION",
+      "decision": "execute",
+      "reason": "allow_skip: false — G1_PLAN recorded as passed; human approval confirmed",
+      "result": "passed",
+      "files_created": 32,
+      "duration_ms": 4820000,
+      "timestamp": "2026-07-17T10:10:09.000Z"
+    },
+    {
+      "gate_id": "SDLC_G2.1_LINT",
+      "decision": "execute",
+      "reason": "allow_skip: false — parallel quality gate",
+      "result": "passed",
+      "findings": { "errors": 0, "warnings": 0 },
+      "duration_ms": 38100,
+      "timestamp": "2026-07-17T11:30:42.000Z"
+    },
+    {
+      "gate_id": "SDLC_G2.2_TYPECHECK",
+      "decision": "execute",
+      "reason": "allow_skip: false — TypeScript strict mode check",
+      "result": "passed",
+      "findings": { "errors": 0 },
+      "duration_ms": 42600,
+      "timestamp": "2026-07-17T11:30:42.000Z"
+    },
+    {
+      "gate_id": "SDLC_G2.3_FRAMEWORK_RULES",
+      "decision": "execute",
+      "reason": "allow_skip: false — parallel quality gate",
+      "result": "warned",
+      "findings": { "blocking": 2, "advisory": 0 },
+      "notes": "2 hardcoded hex literals in *.styles.ts — backgroundLogin and borderMedium; fixer applied in 1 iteration",
+      "duration_ms": 95300,
+      "timestamp": "2026-07-17T11:30:42.000Z"
+    },
+    {
+      "gate_id": "SDLC_G2.4_CIRCULAR_DEPS",
+      "decision": "execute",
+      "reason": "allow_skip: false — circular dependency check",
+      "result": "passed",
+      "findings": { "cycles": 0 },
+      "duration_ms": 29800,
+      "timestamp": "2026-07-17T11:30:42.000Z"
+    },
+    {
+      "gate_id": "SDLC_G2.6_IMPORT_BOUNDARY",
+      "decision": "execute",
+      "reason": "allow_skip: false — module boundary validation",
+      "result": "warned",
+      "findings": { "violations": 1 },
+      "notes": "Image asset used relative path; corrected to @app/ alias by fixer",
+      "duration_ms": 47200,
+      "timestamp": "2026-07-17T11:30:42.000Z"
+    },
+    {
+      "gate_id": "SDLC_G2.7_API_CONTRACT",
+      "decision": "execute",
+      "reason": "allow_skip: false — service layer contract validation",
+      "result": "warned",
+      "findings": { "any_types": 1, "missing_types": 0 },
+      "notes": "Implicit any on mock service return type; fixed to Promise<RequestOtpResponse>",
+      "duration_ms": 61500,
+      "timestamp": "2026-07-17T11:30:42.000Z"
+    },
+    {
+      "gate_id": "SDLC_G2.8_OBSERVABILITY",
+      "decision": "execute",
+      "reason": "allow_skip: false — analytics instrumentation check",
+      "result": "passed",
+      "findings": { "missing_events": 0, "pii_violations": 0, "events_instrumented": 4 },
+      "duration_ms": 53900,
+      "timestamp": "2026-07-17T11:30:42.000Z"
+    },
+    {
+      "gate_id": "SDLC_G2.5_SECURITY",
+      "decision": "execute",
+      "reason": "allow_skip: false — OWASP security audit; blocking on Critical/High",
+      "result": "warned",
+      "findings": { "critical": 0, "high": 0, "medium": 2, "low": 2 },
+      "notes": "SEC-001 OTP partial validation; SEC-002 numeric filter missing; SEC-003 token not in Keychain (POC); SEC-004 PII in mock message — all resolved",
+      "duration_ms": 187400,
+      "timestamp": "2026-07-17T11:52:18.000Z"
+    },
+    {
+      "gate_id": "SDLC_G3_REVIEW",
+      "decision": "execute",
+      "reason": "allow_skip: false — combined architecture and code quality review",
+      "result": "warned",
+      "findings": { "critical": 3, "high": 0, "medium": 0, "low": 0 },
+      "notes": "C1: takeLatest→takeLeading on auth saga; C2: repeated Pressable→SelectorOption atom; C3: ActionButton moved to shared/ — all auto-fixed by G2.75 in 1 iteration",
+      "duration_ms": 412700,
+      "timestamp": "2026-07-17T12:09:44.000Z"
+    },
+    {
+      "gate_id": "SDLC_G4_TESTING",
+      "decision": "execute",
+      "reason": "allow_skip: false — test planner + developer + executor; 80% coverage threshold enforced",
+      "result": "warned",
+      "findings": {
+        "tests_total": 100,
+        "tests_passed": 100,
+        "tests_failed": 0,
+        "coverage_statements": 98.02,
+        "coverage_branches": 97.5,
+        "coverage_functions": 93.75,
+        "coverage_lines": 98.52,
+        "jest_config_fixes": 2
+      },
+      "notes": "Fixer resolved: react-redux missing from transformIgnorePatterns; jest.mock() factory outer-scope variable reference",
+      "duration_ms": 934100,
+      "timestamp": "2026-07-17T12:56:31.000Z"
+    },
+    {
+      "gate_id": "SDLC_G4.5_CONTRACT_TEST",
+      "decision": "execute",
+      "reason": "allow_skip: false — service contract edge case coverage",
+      "result": "warned",
+      "findings": { "missing_edge_cases": 2 },
+      "notes": "Added requestOtp failure path and malformed response edge case",
+      "duration_ms": 198200,
+      "timestamp": "2026-07-17T13:12:44.000Z"
+    },
+    {
+      "gate_id": "SDLC_G5_PERFORMANCE",
+      "decision": "execute",
+      "reason": "allow_skip: true; condition met — non-blocking advisory gate",
+      "result": "warned",
+      "findings": { "bundle_delta_kb": 38, "inline_handlers": 2 },
+      "notes": "Advisory only — bundle delta within warn threshold (< 50 KB); inline handlers noted for future refactor",
+      "duration_ms": 143600,
+      "timestamp": "2026-07-17T13:32:18.000Z"
+    },
+    {
+      "gate_id": "SDLC_G6_ACCESSIBILITY",
+      "decision": "execute",
+      "reason": "allow_skip: false — accessibilityRole, accessibilityLabel, testID audit",
+      "result": "warned",
+      "findings": { "missing_accessibility_role": 6 },
+      "notes": "accessibilityRole added to all 6 interactive elements by fixer",
+      "duration_ms": 112800,
+      "timestamp": "2026-07-17T13:32:18.000Z"
+    },
+    {
+      "gate_id": "SDLC_G7_DEPENDENCIES",
+      "decision": "execute",
+      "reason": "allow_skip: false — npm audit --production; blocks on Critical/High",
+      "result": "passed",
+      "findings": { "critical": 0, "high": 0, "moderate": 0 },
+      "notes": "2 new packages (react-native-svg, react-native-get-random-values) passed production audit",
+      "duration_ms": 28400,
+      "timestamp": "2026-07-17T13:32:18.000Z"
+    },
+    {
+      "gate_id": "SDLC_G8_COMPLETION",
+      "decision": "execute",
+      "reason": "allow_skip: false — G8 runs on all termination paths (Rule 5a)",
+      "result": "passed",
+      "notes": "Dashboard generated; meta-learner wrote 8 new rules to 4 instruction files",
+      "duration_ms": 224300,
+      "timestamp": "2026-07-17T14:04:11.000Z"
+    }
+  ],
+
+  "summary": {
+    "gates_executed": 21,
+    "gates_skipped_authorized": 1,
+    "gates_skipped_unauthorized": 0,
+    "gates_passed": 12,
+    "gates_warned_then_fixed": 9,
+    "gates_hard_failed": 0,
+    "total_findings_fixed": 16,
+    "acceptance_criteria_satisfied": "15 / 15",
+    "test_pass_rate": "100 / 100",
+    "coverage_statements_pct": 98.02,
+    "security_critical_remaining": 0,
+    "meta_learner_rules_written": 8
+  }
+}

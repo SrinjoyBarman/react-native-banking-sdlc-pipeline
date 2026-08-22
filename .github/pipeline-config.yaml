@@ -1,0 +1,1114 @@
+# FinVault Agentic SDLC Pipeline Configuration
+# Defines gates, agents, model assignments, and blocking behavior
+
+version: "2.5.0"
+pipeline_name: "FinVault Feature Delivery Pipeline"
+description: "End-to-end agentic SDLC pipeline with configurable gates and atomic specialized agents"
+
+# ============================================================================
+# Input Parsing (NEW in v2.4.0)
+# ============================================================================
+
+input:
+  # Regex to extract Jira ticket ID from invocation string.
+  # Matches: BANK-123, PROJ-99, JIRA-456, LOCAL-001, etc.
+  ticket_id_pattern: '^([A-Z]+-\d+)'
+  jira:
+    enabled: true
+    base_url: "https://jiraeu.example.com"
+    mcp_server: "jira" # matches the key in .vscode/mcp.json
+    auto_fetch_on_ticket_id: true # fetch issue details when ticket is parsed
+    fields:
+      [
+        "summary",
+        "description",
+        "acceptanceCriteria",
+        "parent",
+        "issuetype",
+        "attachment",
+      ]
+  # Where to look for the ticket ID
+  ticket_id_source: "invocation_string" # e.g. @sdlc-pipeline-orchestrator BANK-123: <description>
+  # What to do when no ticket ID is found in the invocation string
+  fallback_on_no_ticket: "prompt_user" # Prompt user once; they may also type LOCAL-001
+  # Prompt for run type on every full pipeline run (not validate/resume/mark-reverted)
+  run_type_prompt: true
+  run_types: ["feature", "bugfix", "refactor"] # system types (validate, resume, mark-reverted) are not user-selectable
+
+# ============================================================================
+# Optimization Settings (NEW in v2.1.0 — 50% token reduction)
+# ============================================================================
+
+optimization:
+  # Report verbosity flag (NEW in v2.3.0)
+  # When true (default): each gate writes a full verbose markdown report to pipeline-output/.
+  # When false (compact mode): agents produce compact gate-summary JSON instead. Verbose markdown
+  # reports are suppressed. G8 final reports (pipeline-dashboard.md, meta-learning-report.md)
+  # are ALWAYS generated as full markdown regardless of this flag. design-spec.md is always
+  # written (inline orchestrator gate — image extraction output, cannot be compacted).
+  generate_in_depth_reports: true
+
+  # Shared context pool - load copilot-instructions.md once per pipeline run
+  shared_context_enabled: true
+
+  # Incremental validation mode - analyze only changed files + dependents
+  incremental_mode:
+    enabled: true
+    auto_detect: true # Use incremental if < 30% files changed
+    min_files: 10 # Require at least 10 files in codebase
+    dependency_analysis: true
+
+  # Lazy context loading - minimal context for Haiku agents
+  lazy_context_enabled: true
+
+  # Structured reporting - use JSON summaries instead of markdown parsing (v2.1.1)
+  structured_reporting:
+    enabled: true
+    generate_summary_json: true # Create pipeline-summary.json
+    generate_findings_json: true # Create findings-summary.json
+    max_top_issues: 5 # Limit details to top N per gate
+
+  # Token budget warnings (per agent) — hard cap injected into every agent prompt
+  token_budgets:
+    haiku: 15000
+    sonnet: 60000
+    gpt5mini: 10000 # Lightweight parsing/checklist gates
+    gemini3flash: 20000 # Rule-checklist audit gates
+
+  # Reporting optimization targets (v2.1.1)
+  target_token_usage:
+    dashboard_generator: 6000 # Down from 38k
+    meta_learner: 8000 # Down from 21k
+    dependency_auditor: 5000 # Down from 22k
+
+  # Prompt caching — high-reuse context blocks loaded once and reused across gates
+  # GitHub Copilot supports Anthropic cache writes/reads at reduced rates.
+  # Files read by ≥3 agents per run qualify; cache reads cost ~10× less than normal reads.
+  prompt_caching:
+    enabled: true
+    cacheable_files:
+      - path: ".github/copilot-instructions.md"
+        min_agents: 3 # Only cache if read by ≥3 agents this run
+      - path: ".github/pipeline-config.yaml"
+        min_agents: 3
+      - path: "pipeline-output/00-requirements/problem-spec.md"
+        min_agents: 3
+    # GitHub Copilot / Anthropic cache pricing (per 1M tokens)
+    cache_write_cost_per_mtok: 3.75
+    cache_read_cost_per_mtok: 0.30
+    normal_input_cost_per_mtok: 3.00 # Baseline for savings calculation
+
+# ============================================================================
+# Performance Budgets (NEW in v2.2.0)
+# ============================================================================
+# Consumed by sdlc-g5-performance-auditor at runtime.
+
+performance_budgets:
+  bundle:
+    warn_delta_kb: 50 # 🟡 Should Address if feature adds > 50 KB
+    fail_delta_kb: 100 # 🔴 Must Fix if feature adds > 100 KB
+    fail_delta_pct: 10 # 🔴 Must Fix if bundle grows > 10% (legacy check)
+    baseline_file: "pipeline-output/07-audits/bundle-baseline.json"
+  startup:
+    cold_start_max_ms: 2000 # 🟡 Should Address if new screen misses this
+    tti_max_ms: 1500 # 🟡 Should Address if new screen misses this
+  memory:
+    enforce_flatlist_for_lists: true # 🔴 Must Fix if map-in-ScrollView found
+  skeleton_loading:
+    required_states: ["idle", "loading"] # Both must render skeleton on new screens
+
+# ============================================================================
+# Interactive Failure Handling (NEW — Added 2026-06-03)
+# ============================================================================
+#
+# FEATURE: User-Prompted Auto-Fix for Test Failures
+#
+# When SDLC_G4_TESTING fails, the pipeline now offers interactive remediation:
+#
+# 1. DETECTION: Pipeline detects test failures (e.g., 28 test failures, 49% coverage)
+# 2. USER PROMPT: Orchestrator asks: "Would you like to auto-fix tests and continue?"
+# 3. USER DECISION:
+#    - YES → Pipeline invokes sdlc-g4-test-fixer to:
+#            * Fix Jest configuration (moduleNameMapper, test environment)
+#            * Setup mock providers (Redux, Navigation, Context)
+#            * Fix async/timer isolation issues
+#            * Re-run tests until 80% coverage achieved
+#            * Auto-continue to G5, G6, G7 gates on success
+#    - NO  → Pipeline stops with remediation guide reference
+#
+# This prevents blocking on test configuration issues while maintaining quality gates.
+#
+# Configuration:
+# - Set `failure_action: 'ask_user_then_auto_fix'` on any gate
+# - Set `interactive_fix.enabled: true`
+# - Define `on_user_accept` and `on_user_decline` actions
+# - List `auto_continue_gates` for post-fix execution
+#
+# ============================================================================
+
+# ============================================================================
+# Gate Execution Contract (MANDATORY — Added 2026-06-03)
+# ============================================================================
+#
+# CRITICAL RULE: Optimization strategies reduce token consumption WITHIN gates,
+# but DO NOT authorize skipping gates unless explicitly allowed.
+#
+# Gate Execution Rules:
+# 1. MANDATORY EXECUTION: All gates with `allow_skip: false` MUST be executed
+# 2. BLOCKING ENFORCEMENT: Gates with `blocking: true` MUST pass before proceeding
+# 3. NO DISCRETIONARY SKIPPING: Orchestrators cannot skip gates "for efficiency"
+# 4. OPTIMIZATION ≠ SKIPPING: Token optimization means:
+#    - Use shared context (load files once)
+#    - Use incremental mode (analyze only changed files)
+#    - Use lazy context (minimal context for simple agents)
+#    - Use structured reporting (JSON summaries vs full markdown)
+#    BUT gates still execute with their full agent list
+# 5. ALLOWED SKIPPING: Only gates with `allow_skip: true` may be skipped
+# 6. CONDITIONAL SKIPPING: Gates with a `condition:` field skip only if condition is false
+#
+# Violation Handling:
+# - If a gate is skipped without authorization, the pipeline run is INVALID
+# - The checkpoint must be marked with `validation_status: INCOMPLETE`
+# - A warning must be added to the final dashboard report
+# - The sdlc-g8-meta-learner must record the violation for future prevention
+#
+# Enforcement Mechanism:
+# - Before skipping any gate, check: `gates[gate_id].allow_skip === true`
+# - If false, EXECUTE the gate (no exceptions)
+# - Log each gate execution decision to `pipeline-state.json` with reason
+#
+# ============================================================================
+
+gate_execution_contract:
+  version: "1.0.0"
+  enforce_execution: true
+
+  # Validation rules
+  validation:
+    allow_skip_check: true # Must pass before skipping
+    log_decisions: true # Log every gate decision
+    invalidate_on_violation: true # Mark pipeline invalid if rules broken
+
+  # Decision logging schema (append to pipeline-state.json)
+  decision_log_schema:
+    gate_id: "string"
+    decision: "execute | skip | conditional_skip"
+    reason: "string" # Must reference allow_skip or condition
+    timestamp: "ISO8601"
+
+  # Violation consequences
+  violation_handling:
+    mark_invalid: true
+    add_warning_to_dashboard: true
+    record_in_meta_learning: true
+    recommendation: "Re-run pipeline from last valid checkpoint"
+
+# ============================================================================
+# Compact Gate-Summary Schema (used when generate_in_depth_reports: false)
+# ============================================================================
+# When compact mode is active, every agent must return a JSON block conforming
+# to this schema instead of a verbose markdown report. The orchestrator captures
+# the JSON, stores it in /memories/session/gate-summaries.json keyed by gate_id,
+# and injects the relevant entries into each downstream agent's invocation prompt.
+#
+# Gates whose output_artifact is already pure JSON (G2.5 security, G2.1 lint,
+# G2.2 typecheck, G2.4 circular-deps, G2.6 import-boundary, G4 test-report)
+# use their existing JSON output as the compact_artifact — no new format needed.
+# G8 (pipeline-dashboard.md + meta-learning-report.md) is unconditionally exempt.
+# G0.5 design-spec.md is unconditionally exempt (inline orchestrator, image source).
+# ============================================================================
+
+compact_summary_schema:
+  # Required for ALL gates
+  gate_id: "string" # e.g. SDLC_G1_PLAN
+  status: "passed | warned | failed"
+  timestamp: "ISO8601"
+  summary: "string" # 1-2 sentence description of outcome
+  issues: "array" # [{severity: critical|high|medium|low, message, file?, line?}]
+  blocking_issues: "array" # subset of issues that are blocking
+
+  # key_data — gate-specific payload injected into downstream agent prompts
+  key_data:
+    # G0_ENTRY
+    G0_ENTRY:
+      {
+        task_type: "string",
+        feature_name: "string",
+        req_ids: "string[]",
+        nfr_catalog: "object",
+        design_artifact_status: "string",
+      }
+    # G1_PLAN
+    G1_PLAN:
+      {
+        user_stories: "string[]",
+        req_traceability: "[{req_id, criteria[]}]",
+        affected_modules: "string[]",
+      }
+    # G2_IMPLEMENTATION
+    G2_IMPLEMENTATION:
+      {
+        files_created: "string[]",
+        files_modified: "string[]",
+        total_lines: "number",
+        key_components: "string[]",
+      }
+    # G2.x quality gates
+    G2x_QUALITY:
+      {
+        violations_count: "number",
+        auto_fixed_count: "number",
+        top_issues: "array",
+      }
+    # G3_REVIEW
+    G3_REVIEW:
+      {
+        critical_count: "number",
+        major_count: "number",
+        files_reviewed: "string[]",
+        top_critical_issues: "array",
+      }
+    # G4_TESTING (within-gate planner → developer handoff)
+    G4_TEST_PLANNER:
+      {
+        test_cases: "array",
+        coverage_targets: "object",
+        req_coverage: "object",
+      }
+    # G4_TESTING executor output
+    G4_EXECUTOR:
+      {
+        tests_passed: "number",
+        tests_failed: "number",
+        coverage:
+          {
+            statements: "number",
+            branches: "number",
+            functions: "number",
+            lines: "number",
+          },
+      }
+    # G5/G6/G7 audits
+    G5G6G7_AUDITS:
+      {
+        budget_status: "string",
+        violations: "array",
+        recommendations: "string[]",
+      }
+
+# Model configuration — tiered by task complexity
+# Pricing source: GitHub Copilot Models and pricing (docs.github.com), verified 2026-06-22.
+# All costs are per 1M tokens via GitHub Copilot (not direct Anthropic/OpenAI API).
+# cost_model_version: v2 — uses split input/output rates (v1 used a single blended rate).
+models:
+  gpt5mini:
+    name: "GPT-5 mini"
+    use_for:
+      [
+        "structured_output_parsing",
+        "json_analysis",
+        "checklist_validation",
+        "dependency_parsing",
+      ]
+    cost_per_1m_input_tokens: 0.25
+    cost_per_1m_output_tokens: 2.00
+    # Substitution rationale: gates assigned this model only parse shell/tool output (ESLint JSON,
+    # tsc errors, madge JSON, npm audit JSON) or check for presence of specific code patterns.
+    # No open-ended reasoning required. 4× cheaper input than Haiku, zero quality risk.
+  gemini3flash:
+    name: "Gemini 3 Flash"
+    use_for:
+      [
+        "rule_checklist",
+        "pattern_matching",
+        "audit_gates",
+        "convention_checking",
+      ]
+    cost_per_1m_input_tokens: 0.50
+    cost_per_1m_output_tokens: 3.00
+    # Substitution rationale: gates assigned this model apply deterministic rule checklists
+    # (framework conventions, performance budgets, accessibility labels). No code generation.
+    # 6× cheaper input than Sonnet, low quality risk for structured checklist tasks.
+  haiku:
+    name: "Claude Haiku 4.5"
+    use_for: ["script_execution", "metrics", "release_checklist"]
+    cost_per_1m_input_tokens: 1.00
+    cost_per_1m_output_tokens: 5.00
+    # Retained for G9 release readiness (version/CHANGELOG checks) and G8 meta-learner context.
+  sonnet:
+    name: "Claude Sonnet 4.6"
+    use_for:
+      [
+        "implementation",
+        "code_review",
+        "testing",
+        "analysis",
+        "security_fix",
+        "architecture",
+        "security_audit",
+        "planning",
+        "reasoning",
+        "meta_analysis",
+      ]
+    cost_per_1m_input_tokens: 3.00
+    cost_per_1m_output_tokens: 15.00
+
+# File categorization for change detection prioritization
+file_categories:
+  core_logic:
+    patterns:
+      - "src/**/*.{ts,tsx}"
+      - "ios/FinVaultApp/BiometricModule/**/*.{swift,h,m,mm}"
+      - "android/app/src/main/java/**/*.{kt,java}"
+    priority: "high"
+    analysis_depth: "deep"
+    model: "default"
+
+  tests:
+    patterns:
+      - "**/*.test.{ts,tsx}"
+      - "**/__tests__/**/*.{ts,tsx}"
+      - "ios/FinVaultAppTests/**/*"
+    priority: "medium"
+    analysis_depth: "medium"
+    model: "default"
+
+  native_bridges:
+    patterns:
+      - "src/*/native/**/*.{ts,tsx}"
+      - "ios/FinVaultApp/*Module/**/*.{swift,m,h}"
+    priority: "high"
+    analysis_depth: "deep"
+    model: "default"
+
+  configuration:
+    patterns:
+      - "*.config.{js,ts}"
+      - "*.json"
+      - ".eslintrc.*"
+      - ".prettierrc.*"
+      - "tsconfig*.json"
+    priority: "low"
+    analysis_depth: "light"
+    model: "default"
+
+  scripts:
+    patterns:
+      - "scripts/**/*.sh"
+      - "scripts/**/*.js" # Node.js build scripts (CommonJS)
+      - ".husky/**/*"
+      - ".githooks/**/*"
+    priority: "low"
+    analysis_depth: "light"
+    model: "default"
+
+  documentation:
+    patterns:
+      - "**/*.md"
+      - "docs/**/*"
+    priority: "low"
+    analysis_depth: "light"
+    model: "default"
+
+# Pipeline gates definition
+gates:
+  # GATE 0: Pipeline Entry - validates feature description and prerequisites
+  - id: "SDLC_G0_ENTRY"
+    name: "Pipeline Entry"
+    phase: "pre-stage"
+    description: "Validate feature description, acceptance criteria, clean git tree, and base branch"
+    blocking: true
+    allow_skip: false
+    agents:
+      - "sdlc-g0-requirements-analyst"
+    model: "sonnet"
+    output_artifact: "pipeline-output/00-requirements/problem-spec.md"
+    compact_artifact: "pipeline-output/00-requirements/problem-spec-summary.json"
+    success_criteria:
+      - "Feature description is clear and actionable"
+      - "Acceptance criteria defined or generated"
+      - "Git tree is clean (no uncommitted changes)"
+      - "Base branch confirmed"
+      - "design_artifact_status set in problem-spec.md (UI tasks only)"
+    failure_action: "stop"
+
+  # GATE 0.5: Design Spec Extraction — mandatory for UI screen tasks
+  - id: "SDLC_G0.5_DESIGN"
+    name: "Design Spec Extraction"
+    phase: "pre-stage"
+    output_artifact: "pipeline-output/design-spec.md" # Written inline by orchestrator — no forwarding needed
+    description: >
+      Extracts a structured design-spec.md from attached design images before
+      implementation begins. Hard-blocks if task is UI_SCREEN and no design
+      artifact is provided. Inline orchestrator step — no external agent.
+    blocking: true
+    allow_skip: false
+    condition: "SDLC_G0_ENTRY.problem_spec.task_type == UI_SCREEN"
+    agents: [] # Handled inline by sdlc-pipeline-orchestrator
+    model: null
+    success_criteria:
+      - "pipeline-output/design-spec.md created with per-screen element breakdown"
+      - "Every screen in feature-plan lists: header type, body text, hint text, background, special elements"
+    failure_action: "stop"
+    failure_message: >
+      UI screen implementation requires a design artifact.
+      Attach a screenshot, Figma link, or annotated spec and re-run the pipeline.
+    output:
+      - path: "pipeline-output/design-spec.md"
+        required: true
+
+  # GATE 0.7: Architecture Drift Detection (conditional — multi-module changes only)
+  - id: "SDLC_G0.7_ARCH_DRIFT"
+    name: "Architecture Drift Detection"
+    phase: "pre-stage"
+    description: "Detects cross-module import violations and circular dependencies when >1 module is changed"
+    blocking: true
+    allow_skip: false
+    condition: "num_modules_changed > 1"
+    agents:
+      - "sdlc-g0.7-arch-drift"
+    model: "sonnet"
+    output_artifact: "pipeline-output/00-requirements/arch-drift-report.md"
+    compact_artifact: "pipeline-output/00-requirements/arch-drift-summary.json"
+    success_criteria:
+      - "No cross-feature direct imports"
+      - "No new circular dependencies"
+      - "Cross-module calls match sequence diagrams (if G1.5 ran)"
+    failure_action: "stop"
+
+  # GATE 1: Development Plan Approval
+  - id: "SDLC_G1_PLAN"
+    name: "Development Plan Approval"
+    phase: "planning"
+    description: "Approve development plan or revise before implementation"
+    blocking: true
+    allow_skip: false
+    agents:
+      - "sdlc-g1-feature-planner"
+      - "sdlc-g1-change-area-mapper"
+    model: "sonnet"
+    output_artifact: "pipeline-output/01-plan/feature-plan.md"
+    compact_artifact: "pipeline-output/01-plan/feature-plan-summary.json"
+    success_criteria:
+      - "User stories created with dependency order"
+      - "Affected feature modules identified"
+      - "Change areas mapped to existing structure"
+      - "Implementation plan approved by user"
+    failure_action: "revise"
+    max_revisions: 3
+
+  # GATE 1.5: Classification Validation (Optional Diagram Generation)
+  - id: "SDLC_G1.5_DIAGRAM"
+    name: "Classification Validation"
+    phase: "planning"
+    description: "Generate PlantUML diagrams for architecture visualization"
+    blocking: false
+    allow_skip: true
+    agents:
+      - "sdlc-g1.5-diagram-generator"
+    model: "sonnet"
+    output_artifact: "pipeline-output/01-plan/architecture-diagrams.md"
+    compact_artifact: "pipeline-output/01-plan/diagrams-summary.json"
+    success_criteria:
+      - "Architecture diagram generated (if requested)"
+      - "Sequence diagram for critical flows (optional)"
+    failure_action: "warn"
+
+  # GATE 2: Implementation Routing + Development
+  - id: "SDLC_G2_IMPLEMENTATION"
+    name: "Implementation Routing + Development"
+    phase: "implementation"
+    description: "Route to specialist developer and generate implementation code"
+    blocking: true
+    allow_skip: false
+    agents:
+      - "sdlc-g2-rn-developer"
+    model: "sonnet"
+    output_artifact: "pipeline-output/02-implementation/implementation-manifest.md"
+    compact_artifact: "pipeline-output/02-implementation/implementation-summary.json"
+    success_criteria:
+      - "Implementation follows module boundaries"
+      - "Imports use finvault/* aliases"
+      - "Components extracted to proper folders"
+      - "No hardcoded strings or magic values"
+      - "Logic extracted to hooks"
+    failure_action: "fix"
+
+  # GATE 2.5: Security Audit
+  - id: "SDLC_G2.5_SECURITY"
+    name: "Security Audit"
+    phase: "review"
+    description: "Security specialist checks for vulnerabilities before code approval"
+    blocking: true # Critical/High security issues block
+    allow_skip: false
+    agents:
+      - "sdlc-g2.5-security-specialist"
+    model: "sonnet"
+    output_artifact: "pipeline-output/04-security/security-audit-report.json"
+    compact_artifact: "pipeline-output/04-security/security-audit-report.json" # Already JSON — compact mode uses same file
+    success_criteria:
+      - "No Critical or High severity security issues"
+      - "No sensitive data exposure"
+      - "Auth flows validated"
+      - "Input validation present"
+    failure_action: "fix"
+    max_fix_iterations: 3
+    blocking_severities: ["critical", "high"]
+
+  # GATE 2.75: Security Pass/Fix
+  - id: "SDLC_G2.75_SECURITY_FIX"
+    name: "Security Pass/Fix"
+    phase: "review"
+    description: "Apply security fixes or approve to proceed"
+    blocking: true
+    allow_skip: false
+    agents:
+      - "sdlc-g2.75-fixer"
+    model: "sonnet"
+    condition: "SDLC_G2.5_SECURITY.has_blocking_issues"
+    success_criteria:
+      - "All Critical/High security issues resolved"
+    failure_action: "escalate"
+
+  # GATE 3: Code Review
+  - id: "SDLC_G3_REVIEW"
+    name: "Code Review"
+    phase: "review"
+    description: "Combined single-pass architecture + code quality review (replaces 2-agent split — 40% token saving)"
+    blocking: false # Informational, blocks only on Critical
+    allow_skip: false
+    agents:
+      - "sdlc-g3-senior-reviewer"
+    model: "sonnet"
+    output_artifact: "pipeline-output/05-review/code-review-report.md"
+    compact_artifact: "pipeline-output/05-review/code-review-summary.json"
+    success_criteria:
+      - "All files reviewed with equal depth"
+      - "Bug count < 10 per file"
+      - "No Critical bugs"
+      - "Specific line references provided"
+    failure_action: "warn"
+    blocking_severities: ["critical"]
+
+  # GATE 3.5: Accept / Fix / Abort
+  - id: "SDLC_G3.5_REVIEW_DECISION"
+    name: "Accept / Fix / Abort"
+    phase: "review"
+    description: "Decide whether to fix issues, accept with warnings, or abort"
+    blocking: true
+    allow_skip: false
+    agents:
+      - "sdlc-g2.75-fixer"
+    model: "sonnet"
+    condition: "SDLC_G3_REVIEW.has_major_issues"
+    success_criteria:
+      - "Critical issues fixed"
+      - "Major issues addressed or accepted"
+    failure_action: "fix_or_abort"
+    max_fix_iterations: 3
+
+  # Quality sub-gates (run in parallel, non-blocking unless Critical)
+  - id: "SDLC_G2.1_LINT"
+    name: "Lint Check"
+    phase: "quality"
+    description: "ESLint validation"
+    blocking: false
+    allow_skip: false
+    agents:
+      - "sdlc-g2.1-lint"
+    model: "gpt5mini" # Parses ESLint JSON output — no reasoning needed. 4× cheaper than Haiku.
+    output_artifact: "pipeline-output/03-quality/lint-report.md"
+    compact_artifact: "pipeline-output/03-quality/lint-report.json" # Already JSON — compact mode uses same file
+    success_criteria:
+      - "No ESLint errors"
+    failure_action: "warn"
+    auto_fix: true
+
+  - id: "SDLC_G2.2_TYPECHECK"
+    name: "TypeScript Check"
+    phase: "quality"
+    description: "TypeScript compilation check"
+    blocking: true
+    allow_skip: false
+    agents:
+      - "sdlc-g2.2-typecheck"
+    model: "gpt5mini" # Parses tsc error text and reports file/line violations. 4× cheaper than Haiku.
+    output_artifact: "pipeline-output/03-quality/typecheck-report.md"
+    compact_artifact: "pipeline-output/03-quality/typecheck-report.json" # Already JSON — compact mode uses same file
+    success_criteria:
+      - "No TypeScript errors"
+    failure_action: "stop"
+
+  - id: "SDLC_G2.3_FRAMEWORK_RULES"
+    name: "Framework Rules Validation"
+    phase: "quality"
+    description: "Project-specific conventions from copilot-instructions.md"
+    blocking: false
+    allow_skip: false
+    agents:
+      - "sdlc-g2.3-framework-rules"
+    model: "gemini3flash" # Pattern-matches code against copilot-instructions.md rules. 6× cheaper than Sonnet.
+    output_artifact: "pipeline-output/03-quality/framework-rules-report.md"
+    compact_artifact: "pipeline-output/03-quality/framework-rules-summary.json"
+    success_criteria:
+      - "Module boundaries respected"
+      - "Component standards followed"
+      - "No deep relative imports"
+    failure_action: "warn"
+
+  - id: "SDLC_G2.4_CIRCULAR_DEPS"
+    name: "Circular Dependencies Check"
+    phase: "quality"
+    description: "Detect circular dependencies with madge"
+    blocking: false
+    allow_skip: false
+    agents:
+      - "sdlc-g2.4-circular-deps"
+    model: "gpt5mini" # Parses madge JSON output for cycles. 4× cheaper than Haiku.
+    output_artifact: "pipeline-output/03-quality/circular-deps-report.md"
+    compact_artifact: "pipeline-output/03-quality/circular-deps-report.json" # Already JSON — compact mode uses same file
+    success_criteria:
+      - "No circular dependencies"
+    failure_action: "warn"
+
+  - id: "SDLC_G2.6_IMPORT_BOUNDARY"
+    name: "Import Boundary Check"
+    phase: "quality"
+    description: "Validate module dependency graph"
+    blocking: false
+    allow_skip: false
+    agents:
+      - "sdlc-g2.6-import-boundary"
+    model: "gpt5mini" # Checks barrel vs deep import patterns. 4× cheaper than Haiku.
+    output_artifact: "pipeline-output/03-quality/import-boundary-report.md"
+    compact_artifact: "pipeline-output/03-quality/import-boundary-report.json" # Already JSON — compact mode uses same file
+    success_criteria:
+      - "No cross-module deep imports"
+      - "Dependency direction correct"
+    failure_action: "warn"
+
+  - id: "SDLC_G2.7_API_CONTRACT"
+    name: "API Contract Validation"
+    phase: "quality"
+    description: "Validates typed request/response shapes in service layer, no any in service functions"
+    blocking: true
+    allow_skip: false
+    agents:
+      - "sdlc-g2.7-api-contract"
+    model: "gpt5mini" # Checks for absence of `any`, named interfaces, generic ApiService calls. 4× cheaper than Haiku.
+    output_artifact: "pipeline-output/03-quality/api-contract-report.md"
+    compact_artifact: "pipeline-output/03-quality/api-contract-summary.json"
+    success_criteria:
+      - "No any in service function signatures"
+      - "Named type interfaces in .types.ts files"
+      - "Generic type on every ApiService call"
+    failure_action: "warn"
+    blocking_severities: ["critical"]
+
+  - id: "SDLC_G2.8_OBSERVABILITY"
+    name: "Observability Validation"
+    phase: "quality"
+    description: "Validates screen view events, action events, and no PII in analytics properties"
+    blocking: true
+    allow_skip: false
+    agents:
+      - "sdlc-g2.8-observability"
+    model: "gpt5mini" # Checks for presence of screen-view/action event calls and absence of PII fields. 4× cheaper than Haiku.
+    output_artifact: "pipeline-output/03-quality/observability-report.md"
+    compact_artifact: "pipeline-output/03-quality/observability-summary.json"
+    success_criteria:
+      - "Screen view events on all new screens"
+      - "Action events on key flows"
+      - "No PII in event properties"
+    failure_action: "warn"
+    blocking_severities: ["critical"]
+
+  # GATE 4: Testing Pipeline
+  - id: "SDLC_G4_TESTING"
+    name: "Test Execution"
+    phase: "testing"
+    description: "Run test suite and validate layered coverage thresholds + REQ-ID traceability"
+    blocking: true
+    allow_skip: false
+    agents:
+      - "sdlc-g4-test-planner"
+      - "sdlc-g4-unit-test-developer"
+      - "sdlc-g4-integration-test-developer"
+      - "sdlc-g4-e2e-test-developer"
+      - "sdlc-g4-test-executor"
+    model: "sonnet"
+    output_artifact: "pipeline-output/06-testing/test-report.json"
+    compact_artifact: "pipeline-output/06-testing/test-report.json" # Already JSON — compact mode uses same file
+    model_overrides:
+      sdlc-g4-unit-test-developer: "haiku"
+      sdlc-g4-integration-test-developer: "haiku"
+    success_criteria:
+      - "All tests pass"
+      - "Unit coverage (hooks/utils/selectors) >= 80%"
+      - "Integration coverage (sagas/services) >= 60%"
+      - "All REQ-IDs from traceability matrix have >= 1 test case"
+      - "No skipped critical tests"
+    failure_action: "ask_user_then_auto_fix"
+    max_fix_iterations: 3
+    interactive_fix:
+      enabled: true
+      prompt_user: true
+      user_prompt: >
+        SDLC_G4_TESTING failed with test failures. Would you like the pipeline to automatically
+        fix all test configuration issues and achieve 80%+ coverage? This will:
+        - Fix Jest configuration and test environment setup
+        - Fix all mock providers and test utilities
+        - Fix async/timer isolation issues
+        - Re-run tests until 80% coverage achieved
+        - Automatically continue to G5-G7 gates on success
+      on_user_accept:
+        action: "invoke_test_fixer"
+        agents: ["sdlc-g4-test-fixer", "sdlc-g4-test-executor"]
+        target_coverage: 80
+        auto_continue_on_success: true
+        continue_to_gates:
+          [
+            "SDLC_G5_PERFORMANCE",
+            "SDLC_G6_ACCESSIBILITY",
+            "SDLC_G7_DEPENDENCIES",
+          ]
+      on_user_decline:
+        action: "stop"
+        message: "Pipeline stopped. Review TEST-REMEDIATION-GUIDE.md and fix tests manually."
+
+  # Audit gates
+  - id: "SDLC_G5_PERFORMANCE"
+    name: "Performance Audit"
+    phase: "audit"
+    description: "Bundle size, startup time, TTI, memory, and render performance checks against enforced budgets"
+    blocking: false
+    allow_skip: false
+    agents:
+      - "sdlc-g5-performance-auditor"
+    model: "gemini3flash" # Applies performance_budgets checklist — FlatList presence, bundle delta compare. 6× cheaper than Sonnet.
+    output_artifact: "pipeline-output/07-audits/performance-report.md"
+    compact_artifact: "pipeline-output/07-audits/performance-summary.json"
+    success_criteria:
+      - "Bundle delta <= 50 KB per feature"
+      - "No startup time regressions (cold start <= 2s)"
+      - "No unbounded lists without FlatList virtualization"
+      - "New screens implement skeleton loading for idle/loading states"
+    failure_action: "warn"
+    blocking_severities: ["critical"] # Bundle > 100 KB or > 10% legacy threshold
+
+  - id: "SDLC_G6_ACCESSIBILITY"
+    name: "Accessibility Audit"
+    phase: "audit"
+    description: "VoiceOver, Dynamic Type, testID compliance"
+    blocking: false
+    allow_skip: false
+    agents:
+      - "sdlc-g6-accessibility-auditor"
+    model: "gemini3flash" # Checks testID + accessibilityLabel presence across interactive elements. 6× cheaper than Sonnet.
+    output_artifact: "pipeline-output/07-audits/accessibility-report.md"
+    compact_artifact: "pipeline-output/07-audits/accessibility-summary.json"
+    success_criteria:
+      - "All interactive elements have testID"
+      - "VoiceOver labels present"
+      - "Dynamic Type supported"
+    failure_action: "warn"
+
+  - id: "SDLC_G7_DEPENDENCIES"
+    name: "Dependency Audit"
+    phase: "audit"
+    description: "npm audit for security vulnerabilities"
+    blocking: false
+    allow_skip: false
+    agents:
+      - "sdlc-g7-dependency-auditor"
+    model: "gpt5mini" # Parses npm audit JSON and filters by severity. 4× cheaper than Haiku.
+    output_artifact: "pipeline-output/07-audits/dependency-audit-report.md"
+    compact_artifact: "pipeline-output/07-audits/dependency-summary.json"
+    success_criteria:
+      - "No Critical/High vulnerabilities in production deps"
+    failure_action: "warn"
+    blocking_severities: ["critical", "high"]
+
+  # GATE 4.5: Contract Test Validation
+  - id: "SDLC_G4.5_CONTRACT_TEST"
+    name: "Contract Test Validation"
+    phase: "testing"
+    description: "Validates every touched service function has typed contract tests (success + failure + edge case)"
+    blocking: false
+    allow_skip: false
+    agents:
+      - "sdlc-g4.5-contract-test"
+    model: "gpt5mini" # Checks file existence + typed mock patterns — no test writing. 4× cheaper than Haiku.
+    output_artifact: "pipeline-output/06-testing/contract-test-report.md"
+    compact_artifact: "pipeline-output/06-testing/contract-test-summary.json"
+    success_criteria:
+      - "Every changed service function has a test file"
+      - "Tests cover success and failure paths"
+      - "Typed mock return values (no any)"
+    failure_action: "warn"
+    blocking_severities: ["critical"] # T1: missing test file entirely
+
+  # GATE 9: Release Readiness (conditional — only on release branches)
+  - id: "SDLC_G9_RELEASE_READINESS"
+    name: "Release Readiness"
+    phase: "post-stage"
+    description: "Pre-release checklist: version consistency, CHANGELOG, debug flags, .env.example sync"
+    blocking: true
+    allow_skip: false
+    condition: "release_type != null"
+    agents:
+      - "sdlc-g9-release-readiness"
+    model: "haiku"
+    success_criteria:
+      - "Version consistent across package.json, Info.plist, build.gradle"
+      - "CHANGELOG entry exists for this version"
+      - "No unguarded console.log in production source"
+      - ".env.example in sync with process.env usage"
+      - "No TODO/FIXME in changed production files"
+      - "No test artifacts in production source"
+    failure_action: "stop"
+
+  # GATE 8: Pipeline Completion
+  - id: "SDLC_G8_COMPLETION"
+    name: "Pipeline Completion"
+    phase: "post-stage"
+    description: "Generate final report and update documentation"
+    blocking: false
+    allow_skip: false
+    agents:
+      - "sdlc-g8-dashboard-generator"
+      - "sdlc-g8-meta-learner"
+    model: "sonnet"
+    output_artifact: "pipeline-output/08-reports/pipeline-dashboard.md"
+    # G8 is unconditionally exempt from compact mode — both pipeline-dashboard.md and
+    # meta-learning-report.md are ALWAYS generated as full markdown regardless of
+    # generate_in_depth_reports. The orchestrator must NEVER prepend compact-mode
+    # instructions to sdlc-g8-dashboard-generator or sdlc-g8-meta-learner.
+    compact_exempt: true
+    success_criteria:
+      - "Comprehensive report generated"
+      - "Metrics tracked"
+      - "Learnings applied to .github/"
+    failure_action: "warn"
+
+# Pipeline execution order (gate flow)
+execution_flow:
+  - gate: "SDLC_G0_ENTRY"
+    next_on_success: "SDLC_G0.5_DESIGN"
+    next_on_failure: "STOP"
+
+  - gate: "SDLC_G0.5_DESIGN"
+    next_on_success: "SDLC_G0.7_ARCH_DRIFT"
+    next_on_failure: "STOP" # Hard-block — cannot proceed without design spec
+
+  - gate: "SDLC_G0.7_ARCH_DRIFT"
+    next_on_success: "SDLC_G1_PLAN"
+    next_on_failure: "STOP" # Architecture violations block planning
+
+  - gate: "SDLC_G1_PLAN"
+    next_on_success: "SDLC_G1.5_DIAGRAM"
+    next_on_failure: "REVISE_PLAN"
+
+  - gate: "SDLC_G1.5_DIAGRAM"
+    next_on_success: "SDLC_G2_IMPLEMENTATION"
+    next_on_failure: "SDLC_G2_IMPLEMENTATION" # Non-blocking
+
+  - gate: "SDLC_G2_IMPLEMENTATION"
+    next_on_success: "SDLC_PARALLEL_QUALITY_GATES"
+    next_on_failure: "FIX_IMPLEMENTATION"
+
+  - gate: "SDLC_PARALLEL_QUALITY_GATES"
+    parallel_gates:
+      [
+        "SDLC_G2.1_LINT",
+        "SDLC_G2.2_TYPECHECK",
+        "SDLC_G2.3_FRAMEWORK_RULES",
+        "SDLC_G2.4_CIRCULAR_DEPS",
+        "SDLC_G2.6_IMPORT_BOUNDARY",
+        "SDLC_G2.7_API_CONTRACT",
+        "SDLC_G2.8_OBSERVABILITY",
+      ]
+    next_on_success: "SDLC_G2.5_SECURITY"
+    next_on_failure: "HANDLE_QUALITY_FAILURES"
+
+  - gate: "SDLC_G2.5_SECURITY"
+    next_on_success: "SDLC_G3_REVIEW"
+    next_on_failure: "SDLC_G2.75_SECURITY_FIX"
+
+  - gate: "SDLC_G2.75_SECURITY_FIX"
+    next_on_success: "SDLC_G2.5_SECURITY" # Re-run security audit
+    next_on_failure: "ESCALATE"
+
+  - gate: "SDLC_G3_REVIEW"
+    next_on_success: "SDLC_G4_TESTING"
+    next_on_failure: "SDLC_G3.5_REVIEW_DECISION"
+
+  - gate: "SDLC_G3.5_REVIEW_DECISION"
+    next_on_success: "SDLC_G4_TESTING"
+    next_on_failure: "ABORT_OR_FIX"
+
+  - gate: "SDLC_G4_TESTING"
+    next_on_success: "SDLC_G4.5_CONTRACT_TEST"
+    next_on_failure: "ASK_USER_FIX_TESTS"
+    interactive_decision:
+      enabled: true
+      on_user_accept: "AUTO_FIX_TESTS_THEN_CONTINUE"
+      on_user_decline: "STOP_PIPELINE"
+      auto_continue_gates:
+        [
+          "SDLC_G4.5_CONTRACT_TEST",
+          "SDLC_G5_PERFORMANCE",
+          "SDLC_G6_ACCESSIBILITY",
+          "SDLC_G7_DEPENDENCIES",
+        ]
+
+  - gate: "SDLC_G4.5_CONTRACT_TEST"
+    next_on_success: "SDLC_PARALLEL_AUDIT_GATES"
+    next_on_failure: "SDLC_PARALLEL_AUDIT_GATES" # Non-blocking
+
+  - gate: "SDLC_PARALLEL_AUDIT_GATES"
+    parallel_gates:
+      ["SDLC_G5_PERFORMANCE", "SDLC_G6_ACCESSIBILITY", "SDLC_G7_DEPENDENCIES"]
+    next_on_success: "SDLC_G8_COMPLETION"
+    next_on_failure: "SDLC_G8_COMPLETION" # Non-blocking
+
+  - gate: "SDLC_G8_COMPLETION"
+    next_on_success: "SDLC_G9_RELEASE_READINESS"
+    next_on_failure: "SDLC_G9_RELEASE_READINESS" # Completion warnings don't block release check
+
+  - gate: "SDLC_G9_RELEASE_READINESS"
+    next_on_success: "PIPELINE_SUCCESS"
+    next_on_failure: "STOP" # Release readiness failures are hard blocks
+
+# Session memory structure
+session:
+  state_file: "/memories/session/pipeline-state.json"
+  # Resolved at runtime to <OUTPUT_DIR>/checkpoint.md (e.g. pipeline-output/BANK-123/run-002/checkpoint.md)
+  # OUTPUT_DIR is determined in Step 0 of the orchestrator and stored in pipeline-state.json.
+  checkpoint_file: "{{OUTPUT_DIR}}/checkpoint.md"
+  metrics_file: "/memories/session/metrics.json"
+  gate_summaries_file: "/memories/session/gate-summaries.json" # Compact mode: per-gate JSON summaries keyed by gate_id
+
+  # Gate execution validation (added 2026-06-03)
+  validation:
+    enforce_contract: true
+    log_all_decisions: true
+    schema:
+      - gate_id
+      - decision # execute | skip | conditional_skip
+      - reason # must reference allow_skip or condition
+      - authorized # boolean
+      - timestamp
+
+# Output directories
+output:
+  base_dir: "pipeline-output"
+
+  # Ticket-scoped run folders (NEW in v2.4.0)
+  # When true, every run creates: pipeline-output/BANK-123/run-NNN/{subdirs}
+  # OUTPUT_DIR variable is resolved to this full path and used by all gates.
+  ticket_subdir: true
+
+  subdirs:
+    requirements: "00-requirements"
+    plan: "01-plan"
+    implementation: "02-implementation"
+    quality: "03-quality"
+    security: "04-security"
+    review: "05-review"
+    testing: "06-testing"
+    audits: "07-audits"
+    reports: "08-reports"
+
+  # Run history retention per ticket (NEW in v2.4.0)
+  history_retention:
+    max_runs_per_ticket: 3 # Keep the last N run folders per ticket; older runs are deleted
+
+  # Feature summary generation (NEW in v2.4.0)
+  feature_summary:
+    enabled: true
+    onedrive_folder: "finvault-artifacts/feature-summaries" # Uploaded to shared OneDrive instead of local docs/
+    template: ".github/enforcement/templates/feature-summary.template.md"
+    # Auto-updated root index listing all tickets and their latest status
+    onedrive_index_path: "finvault-artifacts/feature-summaries/index.md"
+    # When false, validate-only runs do NOT replace the Gate Status table in the summary
+    # (validate skips G0-G2 so the table would show most gates as "not run" — misleading)
+    # Validate runs only append a row to Run History and update the Last Validate Run section.
+    validate_run_updates_gate_table: false
+
+# Global settings
+settings:
+  max_fix_iterations: 3
+  parallel_execution: true
+  cache_frequent_files: true
+  equal_depth_analysis: true
+  auto_update_github: true
+  token_tracking: true
+  performance_tracking: true
+
+# ============================================================================
+# Execution Mode Overrides (NEW in v2.1.0)
+# ============================================================================
+
+execution_modes:
+  # Validation mode: quality checks only, no feature development
+  validate:
+    description: "Run quality gates on existing code without implementation"
+    skip_gates:
+      [
+        "SDLC_G0_ENTRY",
+        "SDLC_G0.7_ARCH_DRIFT",
+        "SDLC_G1_PLAN",
+        "SDLC_G1.5_DIAGRAM",
+        "SDLC_G2_IMPLEMENTATION",
+        "SDLC_G2.5_SECURITY",
+        "SDLC_G2.75_SECURITY_FIX",
+        "SDLC_G3_REVIEW",
+        "SDLC_G3.5_REVIEW_DECISION",
+        "SDLC_G9_RELEASE_READINESS",
+      ]
+
+    # Override SDLC_G4_TESTING to skip test development
+    gate_overrides:
+      SDLC_G4_TESTING:
+        agents: ["sdlc-g4-test-executor"] # Only run existing tests
+        description: "Execute existing test suite and validate coverage"
+        model: "haiku" # Downgrade to Haiku (just parsing coverage JSON)
+        # Advisory mode if no core_logic or tests changed (prevents false blocks)
+        blocking_condition: "changed_files.include(core_logic) || changed_files.include(tests)"
+
+    # Enable optimizations
+    optimization_flags:
+      shared_context: true
+      incremental_mode: true
+      lazy_context: true
+
+  # Full mode: complete pipeline from planning to completion
+  full:
+    description: "Full feature development pipeline with all gates"
+    skip_gates: []
+    gate_overrides: {} # Use default gate configurations
+    optimization_flags:
+      shared_context: true
+      incremental_mode: false # Always analyze full codebase for features
+      lazy_context: true
+
+  # Resume mode: continue from checkpoint
+  resume:
+    description: "Resume pipeline from last checkpoint"
+    skip_gates: [] # Determined by checkpoint state
+    gate_overrides: {}
+    optimization_flags:
+      shared_context: true
+      incremental_mode: false
+      lazy_context: true
+
+  # Mark-reverted mode: update feature summary only, no gates run
+  mark_reverted:
+    description: >-
+      Mark a ticket’s feature as reverted in the feature summary.
+      No gates execute. Updates Overall Status to REVERTED, appends to Run History
+      and What Was Built sections. Invocation: @sdlc-pipeline-orchestrator BANK-123: mark-reverted
+    skip_gates: ["ALL"]
+    gate_overrides: {}
+    optimization_flags: {}

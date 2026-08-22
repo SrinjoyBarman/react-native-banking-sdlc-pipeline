@@ -1,0 +1,26 @@
+@startuml sequence-{{feature_name}}
+!theme plain
+actor User
+participant "{{FeatureScreen}}" as Screen
+participant "use{{Feature}}" as Hook
+participant "Redux Store" as Store
+participant "{{feature}}Saga" as Saga
+participant "{{feature}}Service" as Service
+participant "ApiService" as API
+participant "Server" as Server
+
+User -> Screen : interaction (press / input)
+Screen -> Hook : event handler
+Hook -> Store : dispatch({{featureAction}}(payload))
+Store -> Saga : takeLeading / takeLatest
+Saga -> Service : {{featureService}}(params)
+Service -> API : getApiService().{{method}}(endpoint)
+API -> Server : HTTP {{METHOD}} /api/v1/{{endpoint}}
+Server --> API : 200 OK { data }
+API --> Service : response.data
+Service --> Saga : typed result
+Saga -> Store : dispatch({{featureSuccess}}(data))
+Store --> Hook : state update via selector
+Hook --> Screen : re-render with new state
+Screen --> User : updated UI
+@enduml

@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Lint Report Schema",
+  "type": "object",
+  "required": ["agent", "gate_id", "executed_at", "files_checked", "total_violations", "errors", "warnings", "status"],
+  "properties": {
+    "agent": { "type": "string", "const": "sdlc-g2.1-lint" },
+    "gate_id": { "type": "string", "const": "SDLC_G2.1_LINT" },
+    "executed_at": { "type": "string", "format": "date-time" },
+    "files_checked": { "type": "integer", "minimum": 0 },
+    "total_violations": { "type": "integer", "minimum": 0 },
+    "errors": { "type": "integer", "minimum": 0 },
+    "warnings": { "type": "integer", "minimum": 0 },
+    "auto_fixed": { "type": "integer", "minimum": 0 },
+    "status": { "type": "string", "enum": ["PASSED", "WARN", "FAILED"] },
+    "blocking": { "type": "boolean" },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "line", "severity", "rule", "message"],
+        "properties": {
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "column": { "type": "integer", "minimum": 0 },
+          "severity": { "type": "string", "enum": ["error", "warning"] },
+          "rule": { "type": "string" },
+          "message": { "type": "string" },
+          "fixable": { "type": "boolean" }
+        }
+      }
+    },
+    "summary_by_rule": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "gate_result": { "type": "string", "enum": ["PASSED", "WARN", "FAILED"] }
+  }
+}

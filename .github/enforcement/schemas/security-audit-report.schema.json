@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Security Audit Report Schema",
+  "type": "object",
+  "required": ["agent", "gate_id", "executed_at", "files_audited", "total_findings", "critical", "high", "medium", "low", "status"],
+  "properties": {
+    "agent": { "type": "string", "const": "sdlc-g2.5-security-specialist" },
+    "gate_id": { "type": "string", "const": "SDLC_G2.5_SECURITY" },
+    "executed_at": { "type": "string", "format": "date-time" },
+    "files_audited": { "type": "integer", "minimum": 0 },
+    "total_findings": { "type": "integer", "minimum": 0 },
+    "critical": { "type": "integer", "minimum": 0 },
+    "high": { "type": "integer", "minimum": 0 },
+    "medium": { "type": "integer", "minimum": 0 },
+    "low": { "type": "integer", "minimum": 0 },
+    "blocking": { "type": "boolean" },
+    "status": { "type": "string", "enum": ["PASSED", "WARN", "FAILED"] },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "file", "severity", "category", "title", "description"],
+        "properties": {
+          "id": { "type": "string" },
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "severity": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+          "category": { "type": "string" },
+          "cwe": { "type": "string" },
+          "owasp": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "code_snippet": { "type": "string" },
+          "impact": { "type": "string" },
+          "exploit_scenario": { "type": "string" },
+          "fix": { "type": "string" },
+          "references": {
+            "type": "array",
+            "items": { "type": "string", "format": "uri" }
+          }
+        }
+      }
+    },
+    "summary_by_severity": {
+      "type": "object",
+      "properties": {
+        "critical": { "type": "integer" },
+        "high": { "type": "integer" },
+        "medium": { "type": "integer" },
+        "low": { "type": "integer" }
+      }
+    },
+    "summary_by_category": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "owasp_categories_found": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "gate_result": { "type": "string", "enum": ["PASSED", "WARN", "FAILED"] },
+    "isError": { "type": "boolean" },
+    "errorCategory": { "type": ["string", "null"] },
+    "isRetryable": { "type": "boolean" },
+    "blockingIssues": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "escalationRequired": { "type": "boolean" },
+    "estimatedFixTime": { "type": "string" },
+    "description": { "type": "string" }
+  }
+}

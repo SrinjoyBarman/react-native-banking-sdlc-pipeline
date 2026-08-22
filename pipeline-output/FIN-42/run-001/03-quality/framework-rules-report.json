@@ -1,0 +1,35 @@
+{
+  "status": "FAILED",
+  "summary": "Validation failed with 3 major violations (loading state, hardcoded colors) and 1 minor chain violation.",
+  "violations": [
+    {
+      "file": "src/auth/screens/LoginScreen/useLoginScreen.ts",
+      "line": 105,
+      "rule": "Loading state must include 'idle' check",
+      "severity": "major",
+      "detail": "isOtpLoading and isAuthLoading only check for 'loading' status, skipping 'idle' check required to prevent flashes."
+    },
+    {
+      "file": "src/auth/screens/LoginScreen/LoginScreen.tsx",
+      "line": 23,
+      "rule": "No hardcoded colors",
+      "severity": "major",
+      "detail": "Hardcoded hex color #DCE8F7 used directly in component props."
+    },
+    {
+      "file": "src/auth/screens/LoginScreen/LoginScreen.styles.ts",
+      "line": 1,
+      "rule": "No hardcoded colors",
+      "severity": "major",
+      "detail": "Stylesheet uses multiple hardcoded hex values (e.g., #1A73E8, #BDBDBD) instead of design tokens."
+    },
+    {
+      "file": "src/auth/services/authService.ts",
+      "line": 34,
+      "rule": "Mandatory API call chain completeness",
+      "severity": "major",
+      "detail": "Service layer returns mock data instead of using ApiService, breaking the mandatory Screen -> hook -> saga -> service -> ApiService chain."
+    }
+  ],
+  "errorCategory": "business"
+}

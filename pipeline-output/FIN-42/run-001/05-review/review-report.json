@@ -1,0 +1,81 @@
+{
+  "agent": "sdlc-g3-senior-reviewer",
+  "gate_id": "SDLC_G3_REVIEW",
+  "executed_at": "2026-07-17T12:09:44.000Z",
+  "feature": "FIN-42",
+  "run": "FIN-42/run-001",
+  "files_reviewed": 18,
+  "gate_result": "FAIL",
+  "status": "FAIL",
+  "blocking": true,
+  "fixer_invoked": true,
+  "fix_iterations": 1,
+  "gate_result_after_fix": "PASS",
+  "findings": [
+    {
+      "id": "C1",
+      "severity": "critical",
+      "category": "Async Flow Correctness",
+      "principle": "SOLID — Single Responsibility + Race Condition",
+      "file": "src/auth/store/authSaga.ts",
+      "line": 34,
+      "title": "takeLatest used for non-idempotent auth action",
+      "description": "The authenticate watcher uses takeLatest. If the user double-taps the AUTHENTICATE button, takeLatest cancels the in-flight request and fires a new one. For an auth submission that commits server-side session state, this creates a race condition — the first request may partially complete before cancellation.",
+      "code_before": "function* watchAuthenticate() {\n  yield takeLatest(authenticateStart.type, authenticateWorker);\n}",
+      "code_after": "function* watchAuthenticate() {\n  yield takeLeading(authenticateStart.type, authenticateWorker);\n}",
+      "rule_reference": "state-and-api.instructions.md — takeLeading required for auth, payment, and submit actions",
+      "root_cause": "Rule exists in instructions. G2 did not catch it — no static check compares saga effect selection against action name semantics.",
+      "fix_applied": "Changed takeLatest → takeLeading in watchAuthenticate. takeLeading ignores all subsequent dispatches while the first is in-flight.",
+      "fix_status": "resolved"
+    },
+    {
+      "id": "C2",
+      "severity": "critical",
+      "category": "Atomic Design Violation",
+      "principle": "DRY + Component Hierarchy",
+      "file": "src/auth/screens/LoginScreen/LoginScreen.tsx",
+      "line": 58,
+      "title": "Repeated Pressable blocks not extracted to shared atom",
+      "description": "The Customer and Bank Staff selector options are implemented as two structurally identical inline Pressable blocks with the same props shape, style logic, and event handler pattern. Per atomic design rules, repeated primitive structures must be extracted to a named atom. A screen containing raw Pressable blocks is a composition-hierarchy violation.",
+      "code_before": "<Pressable\n  testID=\"user-type-customer\"\n  onPress={() => handleRoleSelect('customer')}\n  style={[styles.selectorOption, role === 'customer' && styles.selected]}\n>\n  <AccountCircleIcon />\n  <Text style={styles.selectorLabel}>Customer</Text>\n</Pressable>\n<Pressable\n  testID=\"user-type-staff\"\n  onPress={() => handleRoleSelect('staff')}\n  style={[styles.selectorOption, role === 'staff' && styles.selected]}\n>\n  <WorkIcon />\n  <Text style={styles.selectorLabel}>Bank Staff</Text>\n</Pressable>",
+      "code_after": "<SelectorOption\n  testID=\"user-type-customer\"\n  label=\"Customer\"\n  icon={<AccountCircleIcon />}\n  selected={role === 'customer'}\n  onPress={() => handleRoleSelect('customer')}\n/>\n<SelectorOption\n  testID=\"user-type-staff\"\n  label=\"Bank Staff\"\n  icon={<WorkIcon />}\n  selected={role === 'staff'}\n  onPress={() => handleRoleSelect('staff')}\n/>",
+      "rule_reference": "component-standards-base.instructions.md — no repeated primitive JSX blocks; extract to atom in shared/components/atoms/",
+      "root_cause": "Rule exists. G2 static check does not count repeated Pressable/TouchableOpacity blocks within a file.",
+      "fix_applied": "Extracted SelectorOption atom to src/shared/components/atoms/SelectorOption/. Replaced both inline blocks. Atom is independently testable and reusable across future selector screens.",
+      "fix_status": "resolved"
+    },
+    {
+      "id": "C3",
+      "severity": "critical",
+      "category": "Module Boundary Violation",
+      "principle": "Shared Component Placement Rule",
+      "file": "src/auth/components/ActionButton/ActionButton.tsx",
+      "line": 1,
+      "title": "General-purpose atom scoped to feature module",
+      "description": "ActionButton is a primary CTA atom used in the login screen. It will be required by payments (confirm transfer), onboarding (next step), cards (activate card), and profile (save changes). Scoping it inside src/auth/ means every future screen will either re-implement it or violate module boundaries by importing from auth internals.",
+      "rule_reference": "project-architecture.instructions.md — components referenced from 2+ feature modules belong in shared/components/atoms/",
+      "root_cause": "Positive-direction rule gap: instructions state the boundary but give no 'promote to shared' workflow. Recommendation: add threshold rule — if a component is used by 2+ modules, move it to shared/.",
+      "fix_applied": "Moved ActionButton to src/shared/components/atoms/ActionButton/. Updated import in LoginScreen. Exported from shared/index.ts barrel.",
+      "fix_status": "resolved"
+    }
+  ],
+  "passed_checks": [
+    "All screens are logic-free — business logic correctly extracted to useLoginScreen hook",
+    "Mandatory API call chain complete: screen → hook → saga → service → ApiService",
+    "No sensitive data (mobile number, OTP) in Redux state or navigation params — useRef pattern correct",
+    "State cleared via resetAuthState after successful authentication",
+    "Selectors co-located in authSelectors.ts — no inline state lambdas in hook",
+    "isLoading correctly covers both 'idle' and 'loading': status === 'idle' || status === 'loading'",
+    "No Math.random() in any security-sensitive path",
+    "Dependency graph remains acyclic after changes",
+    "All components are React.FC<Props> arrow functions — no function keyword",
+    "No any types in service layer or hook",
+    "Module barrel exports correct and complete"
+  ],
+  "root_cause_summary": "All three critical findings are semantic violations that G2 static checks cannot detect. C1 requires comparing saga effect type against action name semantics. C2 requires counting structurally identical JSX primitive blocks. C3 requires cross-module usage analysis. G3 is the necessary layer for these categories.",
+  "recommendations_for_pipeline": [
+    "Add takeLatest-vs-action-name static check to sdlc-g2.3-framework-rules: flag takeLatest in sagas whose action name contains auth, login, submit, or payment",
+    "Add repeated-Pressable count check to sdlc-g2.3-framework-rules: fail if Pressable or TouchableOpacity appears more than once with identical structure in a single file",
+    "Add 'promote to shared' threshold rule: if a component is referenced from 2+ feature modules, G3 must flag it as critical"
+  ]
+}

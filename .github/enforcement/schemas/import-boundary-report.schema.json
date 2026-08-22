@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Import Boundary Report Schema",
+  "type": "object",
+  "required": ["agent", "gate_id", "executed_at", "files_checked", "total_violations", "status"],
+  "properties": {
+    "agent": { "type": "string", "const": "sdlc-g2.6-import-boundary" },
+    "gate_id": { "type": "string", "const": "SDLC_G2.6_IMPORT_BOUNDARY" },
+    "executed_at": { "type": "string", "format": "date-time" },
+    "files_checked": { "type": "integer", "minimum": 0 },
+    "total_violations": { "type": "integer", "minimum": 0 },
+    "deep_imports": { "type": "integer", "minimum": 0 },
+    "invalid_dependencies": { "type": "integer", "minimum": 0 },
+    "blocking": { "type": "boolean" },
+    "status": { "type": "string", "enum": ["PASSED", "WARN", "FAILED"] },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "line", "severity", "type", "from_module", "import_statement", "violation", "suggestion"],
+        "properties": {
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "severity": { "type": "string", "enum": ["critical", "major", "minor"] },
+          "type": { "type": "string", "enum": ["deep_import", "invalid_dependency_direction"] },
+          "from_module": { "type": "string" },
+          "to_module": { "type": "string" },
+          "import_statement": { "type": "string" },
+          "violation": { "type": "string" },
+          "suggestion": { "type": "string" }
+        }
+      }
+    },
+    "violations_by_type": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "violations_by_module": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "gate_result": { "type": "string", "enum": ["PASSED", "WARN", "FAILED"] }
+  }
+}

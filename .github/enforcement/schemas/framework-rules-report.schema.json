@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Framework Rules Report Schema",
+  "type": "object",
+  "required": ["agent", "gate_id", "executed_at", "files_checked", "total_violations", "status"],
+  "properties": {
+    "agent": { "type": "string", "const": "sdlc-g2.3-framework-rules" },
+    "gate_id": { "type": "string", "const": "SDLC_G2.3_FRAMEWORK_RULES" },
+    "executed_at": { "type": "string", "format": "date-time" },
+    "files_checked": { "type": "integer", "minimum": 0 },
+    "total_violations": { "type": "integer", "minimum": 0 },
+    "status": { "type": "string", "enum": ["PASSED", "WARN", "FAILED"] },
+    "violations_by_category": {
+      "type": "object",
+      "properties": {
+        "module_boundaries": { "type": "integer" },
+        "component_standards": { "type": "integer" },
+        "component_folder_structure": { "type": "integer" },
+        "import_aliases": { "type": "integer" },
+        "state_management": { "type": "integer" },
+        "ui_rules": { "type": "integer" },
+        "api_chain": { "type": "integer" },
+        "loading_state_pattern": { "type": "integer" }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "line", "severity", "category", "rule", "description"],
+        "properties": {
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "severity": { "type": "string", "enum": ["critical", "major", "minor"] },
+          "category": { "type": "string" },
+          "rule": { "type": "string" },
+          "description": { "type": "string" },
+          "fix": { "type": "string" }
+        }
+      }
+    },
+    "gate_result": { "type": "string", "enum": ["PASSED", "WARN", "FAILED"] }
+  }
+}

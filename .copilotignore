@@ -1,0 +1,20 @@
+# Copilot must never read, summarize, or reference contents of these files.
+# Matches the sensitive-files.instructions.md rule.
+
+# Secrets & environment variables
+.env
+.env.*
+*.env
+.env.local
+
+# Keystore / certificates
+*.keystore
+*.p12
+*.pem
+*.jks
+
+# Pipeline run outputs (may contain PII in test fixtures)
+pipeline-output/
+
+# macOS metadata
+.DS_Store

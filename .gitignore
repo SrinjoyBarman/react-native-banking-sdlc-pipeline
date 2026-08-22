@@ -1,0 +1,95 @@
+# ============================================================
+# Environment & Secrets — NEVER commit
+# ============================================================
+.env
+.env.*
+*.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test
+
+# ============================================================
+# macOS
+# ============================================================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ============================================================
+# VS Code
+# ============================================================
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/extensions.json
+# Keep: .vscode/mcp.json is intentionally committed if it contains no secrets
+
+# ============================================================
+# Node / npm
+# ============================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# ============================================================
+# React Native
+# ============================================================
+# Xcode
+ios/build/
+ios/Pods/
+ios/*.xcworkspace
+ios/DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+
+# Android
+android/build/
+android/app/build/
+android/.gradle/
+local.properties
+*.keystore
+!debug.keystore
+
+# Metro bundler
+.metro-health-check*
+
+# Expo (if applicable)
+.expo/
+
+# ============================================================
+# TypeScript / Build
+# ============================================================
+dist/
+build/
+*.js.map
+*.tsbuildinfo
+
+# ============================================================
+# Test artefacts
+# ============================================================
+coverage/
+jest-coverage/
+
+# ============================================================
+# Pipeline artefacts — local run outputs (not source)
+# ============================================================
+pipeline-output/
+
+# ============================================================
+# Logs
+# ============================================================
+*.log
+logs/

@@ -1,0 +1,45 @@
+{
+  "servers": {
+    "jira": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["mcp-atlassian"],
+      "envFile": "${workspaceFolder}/.env.local",
+      "env": {
+        "JIRA_URL": "https://jiraeu.example.com"
+      }
+    },
+    "figma-developer-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "figma-developer-mcp", "--stdio"],
+      "envFile": "${workspaceFolder}/.env.local"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "envFile": "${workspaceFolder}/.env.local"
+    },
+    "gitlab": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-gitlab"],
+      "envFile": "${workspaceFolder}/.env.local"
+    },
+    "sharepoint": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "${workspaceFolder}/tools/mcp-onedrive",
+        "mcp-onedrive",
+        "serve"
+      ],
+      "env": {
+        "SHAREPOINT_FOLDER": "finvault-artifacts",
+        "SHAREPOINT_TENANT": "example.com",
+        "SHAREPOINT_GROUP_ID": "",
+        "SHAREPOINT_SITE_URL": "https://example.sharepoint.com/sites/FinVaultProject"
+      }
+    }
+  }
+}

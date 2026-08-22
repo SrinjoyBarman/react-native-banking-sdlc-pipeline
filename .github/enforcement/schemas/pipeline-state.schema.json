@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PipelineState",
+  "description": "In-memory session state persisted to /memories/session/pipeline-state.json during a pipeline run.",
+  "type": "object",
+  "required": ["pipeline_run_id", "started_at", "trigger", "current_status", "gates_completed", "gates_failed", "gates_warned", "fix_iterations"],
+  "properties": {
+    "pipeline_run_id": { "type": "string", "pattern": "^run_\\d{15}$", "example": "run_20260526_143022" },
+    "started_at":      { "type": "string", "format": "date-time" },
+    "trigger":         { "type": "string", "enum": ["auto_detect", "manual", "resume"] },
+    "current_gate":    { "type": ["string", "null"] },
+    "current_status":  { "type": "string", "enum": ["initializing", "in_progress", "blocked", "success", "failure", "aborted"] },
+    "gates_completed": { "type": "array", "items": { "type": "string" } },
+    "gates_failed":    { "type": "array", "items": { "type": "string" } },
+    "gates_warned":    { "type": "array", "items": { "type": "string" } },
+    "fix_iterations":  { "type": "object", "additionalProperties": { "type": "integer" } },
+    "user_responses":  { "type": "object", "additionalProperties": { "type": "string" } },
+    "feature_description": { "type": "string" },
+    "change_manifest_path": { "type": "string" }
+  },
+  "example": {
+    "pipeline_run_id": "run_20260526_143022",
+    "started_at": "2026-05-26T14:30:22Z",
+    "trigger": "manual",
+    "current_gate": "SDLC_G2.5_SECURITY",
+    "current_status": "in_progress",
+    "gates_completed": ["SDLC_G0_ENTRY", "SDLC_G1_PLAN", "SDLC_G2_IMPLEMENTATION"],
+    "gates_failed": [],
+    "gates_warned": ["SDLC_G2.1_LINT"],
+    "fix_iterations": { "SDLC_G2.5_SECURITY": 1 },
+    "user_responses": { "primary_goal": "New Feature", "feature_module": "payments" },
+    "feature_description": "Add QR code payment flow with biometric confirmation",
+    "change_manifest_path": "pipeline-output/change-manifest.json"
+  }
+}

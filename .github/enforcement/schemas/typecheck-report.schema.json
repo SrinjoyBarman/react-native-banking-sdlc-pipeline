@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TypecheckReport",
+  "description": "Output of sdlc-g2.2-typecheck written to pipeline-output/03-quality/typecheck-report.json.",
+  "type": "object",
+  "required": ["agent", "gate_id", "executed_at", "exit_code", "total_errors", "status"],
+  "properties": {
+    "agent":           { "type": "string", "const": "sdlc-g2.2-typecheck" },
+    "gate_id":         { "type": "string", "const": "SDLC_G2.2_TYPECHECK" },
+    "executed_at":     { "type": "string", "format": "date-time" },
+    "exit_code":       { "type": "integer", "description": "0=clean, 2=type errors, other=compiler crash" },
+    "total_errors":    { "type": "integer" },
+    "total_warnings":  { "type": "integer" },
+    "blocking":        { "type": "boolean" },
+    "status":          { "type": "string", "enum": ["PASSED", "FAILED", "ERROR"] },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "line", "column", "severity", "code", "message"],
+        "properties": {
+          "file":     { "type": "string" },
+          "line":     { "type": "integer" },
+          "column":   { "type": "integer" },
+          "severity": { "type": "string", "enum": ["error", "warning"] },
+          "code":     { "type": "string", "pattern": "^TS\\d+$" },
+          "message":  { "type": "string" }
+        }
+      }
+    },
+    "errors_by_file": { "type": "object", "additionalProperties": { "type": "integer" } },
+    "errors_by_code": { "type": "object", "additionalProperties": { "type": "integer" } },
+    "gate_result":    { "type": "string", "enum": ["PASSED", "FAILED", "ERROR"] }
+  }
+}

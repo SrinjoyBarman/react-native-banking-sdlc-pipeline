@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pipeline Metrics Schema",
+  "type": "object",
+  "required": ["pipeline_run_id", "started_at", "status"],
+  "properties": {
+    "pipeline_run_id": { "type": "string" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": "string", "format": "date-time" },
+    "status": { "type": "string", "enum": ["running", "success", "failed", "cancelled"] },
+    "total_tokens": {
+      "type": "object",
+      "properties": {
+        "input": { "type": "integer", "minimum": 0 },
+        "output": { "type": "integer", "minimum": 0 },
+        "cache_read": { "type": "integer", "minimum": 0 },
+        "cache_write": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "total_time_ms": { "type": "integer", "minimum": 0 },
+    "estimated_cost": { "type": "number", "minimum": 0 },
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agent_name", "started_at"],
+        "properties": {
+          "agent_name": { "type": "string" },
+          "started_at": { "type": "string", "format": "date-time" },
+          "ended_at": { "type": "string", "format": "date-time" },
+          "duration_ms": { "type": "integer", "minimum": 0 },
+          "tokens": {
+            "type": "object",
+            "properties": {
+              "input": { "type": "integer" },
+              "output": { "type": "integer" },
+              "cache_read": { "type": "integer" },
+              "cache_write": { "type": "integer" },
+              "total": { "type": "integer" }
+            }
+          },
+          "estimated_cost": { "type": "number" },
+          "status": { "type": "string", "enum": ["success", "failure", "skipped"] }
+        }
+      }
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["gate_id", "status"],
+        "properties": {
+          "gate_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["PASSED", "WARN", "FAILED", "SKIPPED"] },
+          "duration_ms": { "type": "integer" },
+          "tokens": {
+            "type": "object",
+            "properties": {
+              "input": { "type": "integer" },
+              "output": { "type": "integer" },
+              "total": { "type": "integer" }
+            }
+          },
+          "estimated_cost": { "type": "number" }
+        }
+      }
+    },
+    "standalone_agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agent", "timestamp"],
+        "properties": {
+          "agent": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "estimated_tokens": {
+            "type": "object",
+            "properties": {
+              "input": { "type": "integer" },
+              "output": { "type": "integer" },
+              "total": { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
