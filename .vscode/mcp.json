@@ -35,10 +35,10 @@
         "serve"
       ],
       "env": {
-        "SHAREPOINT_FOLDER": "finvault-artifacts",
-        "SHAREPOINT_TENANT": "example.com",
+        "SHAREPOINT_FOLDER": "your-onedrive-folder",
+        "SHAREPOINT_TENANT": "your-tenant.com",
         "SHAREPOINT_GROUP_ID": "",
-        "SHAREPOINT_SITE_URL": "https://example.sharepoint.com/sites/FinVaultProject"
+        "SHAREPOINT_SITE_URL": "https://your-tenant.sharepoint.com/sites/YourProjectSite"
       }
     }
   }
