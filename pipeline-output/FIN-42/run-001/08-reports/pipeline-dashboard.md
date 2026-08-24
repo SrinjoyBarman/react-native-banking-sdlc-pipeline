@@ -291,4 +291,4 @@ None — all gate requirements satisfied. Feature is **production-ready as a POC
 ---
 
 _Generated at 2026-07-17T04:00:00Z by sdlc-g8-dashboard-generator_  
-_Pipeline Run: BKIEMOB-9/run-001 · Execution Mode: full · Overall Status: PASSED_
+_Pipeline Run: FIN-42/run-001 · Execution Mode: full · Overall Status: PASSED_

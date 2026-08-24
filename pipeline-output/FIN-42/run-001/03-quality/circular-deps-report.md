@@ -1,6 +1,6 @@
 # Circular Dependencies Report
 
-- **Project:** BKIEMOB-9
+- **Project:** FIN-42
 - **Run:** run-001
 - **Date:** 2026-07-17
 - **Status:** PASSED
@@ -25,7 +25,7 @@ No circular dependencies detected in the scanned source tree.
 - src/store
 - src/onboarding
 
-## Notes on changed modules (BKIEMOB-9)
+## Notes on changed modules (FIN-42)
 
 - `src/auth/` (new module)
   - auth/screens imports: auth/store, auth/services (via hooks), finvault/core, finvault/store, react-native-svg

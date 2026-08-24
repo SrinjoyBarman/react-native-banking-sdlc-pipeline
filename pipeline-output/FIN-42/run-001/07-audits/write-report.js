@@ -1,6 +1,6 @@
 const fs = require('fs');
-const summaryPath = process.argv[2] || 'pipeline-output/BKIEMOB-9/run-001/07-audits/finding-summary.json';
-const outPath = process.argv[3] || 'pipeline-output/BKIEMOB-9/run-001/07-audits/dependency-audit-report.md';
+const summaryPath = process.argv[2] || 'pipeline-output/FIN-42/run-001/07-audits/finding-summary.json';
+const outPath = process.argv[3] || 'pipeline-output/FIN-42/run-001/07-audits/dependency-audit-report.md';
 let s = { error: 'no-summary' };
 if (fs.existsSync(summaryPath)) {
   try { s = JSON.parse(fs.readFileSync(summaryPath, 'utf8')); } catch (e) { s = { error: 'parse-error', message: e.message }; }
@@ -8,7 +8,7 @@ if (fs.existsSync(summaryPath)) {
 const now = new Date().toISOString();
 const status = (s.criticalHighProdCount && s.criticalHighProdCount > 0) ? 'FAILED' : 'PASSED';
 let md = '# Dependency Audit Report\n\n';
-md += `- Run: BKIEMOB-9/run-001\n- Generated: ${now}\n- Status: ${status}\n- Total Critical/High found: ${s.totalCriticalHigh || 0}\n- Critical/High in production dependencies: ${s.criticalHighProdCount || 0}\n- Any fixes available: ${s.anyFixAvailable ? 'Yes' : 'No'}\n\n`;
+md += `- Run: FIN-42/run-001\n- Generated: ${now}\n- Status: ${status}\n- Total Critical/High found: ${s.totalCriticalHigh || 0}\n- Critical/High in production dependencies: ${s.criticalHighProdCount || 0}\n- Any fixes available: ${s.anyFixAvailable ? 'Yes' : 'No'}\n\n`;
 if (s.vulnerabilities && s.vulnerabilities.length) {
   md += '## Vulnerabilities\n\n';
   s.vulnerabilities.forEach(v => {

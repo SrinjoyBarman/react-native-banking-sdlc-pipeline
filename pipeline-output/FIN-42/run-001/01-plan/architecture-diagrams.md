@@ -1,4 +1,4 @@
-# Architecture Diagrams — BKIEMOB-9 Login Screen
+# Architecture Diagrams — FIN-42 Login Screen
 
 **Gate:** SDLC_G1.5_DIAGRAM  
 **Feature:** Dummy Login Screen (OTP-based authentication)  
@@ -167,14 +167,14 @@ flowchart LR
 
 **State transition table:**
 
-| User Action | Dispatched Action | `otpStatus` | `authStatus` | `otpRequested` |
-|---|---|---|---|---|
-| Tap "GET OTP" | `requestOtpStart` | `loading` | `idle` | `false` |
-| Saga: OTP success | `requestOtpSuccess` | `success` | `idle` | **`true`** |
-| Saga: OTP failure | `requestOtpFailure` | `error` | `idle` | `false` |
-| Tap "AUTHENTICATE" | `authenticateStart` | `success` | `loading` | `true` |
-| Saga: auth success | `authenticateSuccess` → `resetAuthState` | `idle` | `idle` | `false` |
-| Saga: auth failure | `authenticateFailure` | `success` | `error` | `true` |
+| User Action        | Dispatched Action                        | `otpStatus` | `authStatus` | `otpRequested` |
+| ------------------ | ---------------------------------------- | ----------- | ------------ | -------------- |
+| Tap "GET OTP"      | `requestOtpStart`                        | `loading`   | `idle`       | `false`        |
+| Saga: OTP success  | `requestOtpSuccess`                      | `success`   | `idle`       | **`true`**     |
+| Saga: OTP failure  | `requestOtpFailure`                      | `error`     | `idle`       | `false`        |
+| Tap "AUTHENTICATE" | `authenticateStart`                      | `success`   | `loading`    | `true`         |
+| Saga: auth success | `authenticateSuccess` → `resetAuthState` | `idle`      | `idle`       | `false`        |
+| Saga: auth failure | `authenticateFailure`                    | `success`   | `error`      | `true`         |
 
 ---
 
@@ -282,11 +282,11 @@ sequenceDiagram
 
 ## Gate Result
 
-| Artifact | Path | Status |
-|---|---|---|
-| Module/Component Hierarchy | `pipeline-output/BKIEMOB-9/run-001/01-plan/architecture-diagrams.md` §1 | ✅ Generated |
-| Redux Data Flow | `pipeline-output/BKIEMOB-9/run-001/01-plan/architecture-diagrams.md` §2 | ✅ Generated |
-| OTP Login Sequence | `pipeline-output/BKIEMOB-9/run-001/01-plan/architecture-diagrams.md` §3 | ✅ Generated |
+| Artifact                   | Path                                                                 | Status       |
+| -------------------------- | -------------------------------------------------------------------- | ------------ |
+| Module/Component Hierarchy | `pipeline-output/FIN-42/run-001/01-plan/architecture-diagrams.md` §1 | ✅ Generated |
+| Redux Data Flow            | `pipeline-output/FIN-42/run-001/01-plan/architecture-diagrams.md` §2 | ✅ Generated |
+| OTP Login Sequence         | `pipeline-output/FIN-42/run-001/01-plan/architecture-diagrams.md` §3 | ✅ Generated |
 
 **Gate:** `SDLC_G1.5_DIAGRAM` — **PASSED**  
 (Non-blocking — diagrams are informational only)

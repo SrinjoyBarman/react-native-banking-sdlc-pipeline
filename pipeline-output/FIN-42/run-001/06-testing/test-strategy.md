@@ -1,8 +1,8 @@
-# Test Strategy: BKIEMOB-9 — LoginScreen (Customer/Bank Staff selector, mobile OTP flow)
+# Test Strategy: FIN-42 — LoginScreen (Customer/Bank Staff selector, mobile OTP flow)
 
 **Date**: 2026-07-17  
 **Author**: sdlc-g4-test-planner  
-**Ticket**: BKIEMOB-9
+**Ticket**: FIN-42
 
 ---
 

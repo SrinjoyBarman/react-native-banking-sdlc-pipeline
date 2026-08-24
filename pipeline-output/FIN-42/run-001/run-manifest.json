@@ -1,8 +1,8 @@
 {
-  "ticket_id": "BKIEMOB-9",
+  "ticket_id": "FIN-42",
   "run_number": 1,
   "run_type": "feature",
-  "output_dir": "pipeline-output/BKIEMOB-9/run-001",
+  "output_dir": "pipeline-output/FIN-42/run-001",
   "started_at": "2026-07-17T00:00:00.000Z",
   "description": "Mobile: Test MCP Integration: Dummy Login - Create login screen with Customer/Bank Staff selector, mobile number field, GET OTP and AUTHENTICATE buttons",
   "parent_ticket": null

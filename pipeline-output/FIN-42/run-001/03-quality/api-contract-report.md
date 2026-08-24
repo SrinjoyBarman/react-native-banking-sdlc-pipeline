@@ -1,4 +1,4 @@
-# API Contract Report — BKIEMOB-9 run-001
+# API Contract Report — FIN-42 run-001
 
 - **Status:** WARN
 - **Scanned file:** [src/auth/services/authService.ts](src/auth/services/authService.ts)
@@ -31,17 +31,30 @@ Scanned `authService.ts` for API contract compliance against Gate rules (C1–C4
 ## Recommended Remediation
 
 1. Extract interfaces into a co-located types file:
-
    - Create: `src/auth/services/authService.types.ts`
    - Export the four interfaces from that file and update `authService.ts` to import them.
 
    Example (types file):
 
    ```ts
-   export interface RequestOtpRequest { mobileNumber: string; userType: 'customer' | 'staff'; }
-   export interface RequestOtpResponse { success: boolean; message: string; }
-   export interface AuthenticateRequest { mobileNumber: string; otp: string; userType: 'customer' | 'staff'; }
-   export interface AuthenticateResponse { success: boolean; token: string; userId: string; }
+   export interface RequestOtpRequest {
+     mobileNumber: string;
+     userType: "customer" | "staff";
+   }
+   export interface RequestOtpResponse {
+     success: boolean;
+     message: string;
+   }
+   export interface AuthenticateRequest {
+     mobileNumber: string;
+     otp: string;
+     userType: "customer" | "staff";
+   }
+   export interface AuthenticateResponse {
+     success: boolean;
+     token: string;
+     userId: string;
+   }
    ```
 
    Example (service import):
@@ -52,7 +65,7 @@ Scanned `authService.ts` for API contract compliance against Gate rules (C1–C4
      RequestOtpResponse,
      AuthenticateRequest,
      AuthenticateResponse,
-   } from './authService.types';
+   } from "./authService.types";
    ```
 
 2. If switching to real network calls, follow C3/C4:

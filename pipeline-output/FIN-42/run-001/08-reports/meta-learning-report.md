@@ -1,6 +1,6 @@
 # Meta-Learning Report
 
-**Run:** BKIEMOB-9/run-001  
+**Run:** FIN-42/run-001  
 **Date:** 2026-07-17  
 **Feature:** OTP Auth Registration Screen — mobile input, OTP entry, submit flow
 
@@ -10,44 +10,44 @@
 
 ### Recurring Violations (appeared in 2+ files or categories)
 
-| Violation | Count | Severity | Action Taken |
-|---|---|---|---|
-| Hardcoded hex colors in `*.styles.ts` | 2+ files | 🔴 Blocking (G2.3) | Added `backgroundLogin` and `borderMedium` tokens to `theme.ts`; codified "add token first" rule in `component-standards-base.instructions.md` |
-| Input validation too permissive | 2 fields (OTP + mobile) | 🔴 Blocking (G2.5) | Added exact-length OTP guard and numeric-only filter rule to `security-and-review.instructions.md` |
-| Repeated Pressable JSX not extracted to atom | 1 component (C2) | 🔴 Blocking (G3) | Already covered by `component-standards-base.instructions.md` primitive-reuse rule — violation was developer non-compliance, not a rule gap |
-| Feature-local ActionButton shared across modules (C3) | 1 component | 🔴 Blocking (G3) | Already covered by module boundary rules — rule gap: no positive example of "promote to shared" workflow |
-| `takeLatest` used for non-idempotent auth action (C1) | 1 saga | 🔴 Blocking (G3) | Already covered by `state-and-api.instructions.md` — developer non-compliance, not a rule gap |
-| `jest.mock()` factory referencing outer scope variable | 1 test file | 🟡 Test failure | Added `jest.mock()` factory scope rule to `ui-and-testing.instructions.md` |
-| `react-redux` missing from `transformIgnorePatterns` | Jest config | 🟡 Config | Previously codified (login-screen run). `sdlc-g4-test-fixer` should treat as first-check item |
-| `@types/node` missing for `fs`/`path` in security audit tests | Jest config | 🟡 Config | Added `@types/node` note to `ui-and-testing.instructions.md` |
-| PII in mock service response `message` field | 1 service mock | 🔴 Security (G2.5) | Added "Mock/Test Data — No PII" rule to `security-and-review.instructions.md` |
-| Circular dependency: `store.ts` → auth barrel → store | 1 architecture | 🔴 Blocking (G2.3) | Added circular dependency pattern to `project-architecture.instructions.md` |
+| Violation                                                     | Count                   | Severity           | Action Taken                                                                                                                                   |
+| ------------------------------------------------------------- | ----------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hardcoded hex colors in `*.styles.ts`                         | 2+ files                | 🔴 Blocking (G2.3) | Added `backgroundLogin` and `borderMedium` tokens to `theme.ts`; codified "add token first" rule in `component-standards-base.instructions.md` |
+| Input validation too permissive                               | 2 fields (OTP + mobile) | 🔴 Blocking (G2.5) | Added exact-length OTP guard and numeric-only filter rule to `security-and-review.instructions.md`                                             |
+| Repeated Pressable JSX not extracted to atom                  | 1 component (C2)        | 🔴 Blocking (G3)   | Already covered by `component-standards-base.instructions.md` primitive-reuse rule — violation was developer non-compliance, not a rule gap    |
+| Feature-local ActionButton shared across modules (C3)         | 1 component             | 🔴 Blocking (G3)   | Already covered by module boundary rules — rule gap: no positive example of "promote to shared" workflow                                       |
+| `takeLatest` used for non-idempotent auth action (C1)         | 1 saga                  | 🔴 Blocking (G3)   | Already covered by `state-and-api.instructions.md` — developer non-compliance, not a rule gap                                                  |
+| `jest.mock()` factory referencing outer scope variable        | 1 test file             | 🟡 Test failure    | Added `jest.mock()` factory scope rule to `ui-and-testing.instructions.md`                                                                     |
+| `react-redux` missing from `transformIgnorePatterns`          | Jest config             | 🟡 Config          | Previously codified (login-screen run). `sdlc-g4-test-fixer` should treat as first-check item                                                  |
+| `@types/node` missing for `fs`/`path` in security audit tests | Jest config             | 🟡 Config          | Added `@types/node` note to `ui-and-testing.instructions.md`                                                                                   |
+| PII in mock service response `message` field                  | 1 service mock          | 🔴 Security (G2.5) | Added "Mock/Test Data — No PII" rule to `security-and-review.instructions.md`                                                                  |
+| Circular dependency: `store.ts` → auth barrel → store         | 1 architecture          | 🔴 Blocking (G2.3) | Added circular dependency pattern to `project-architecture.instructions.md`                                                                    |
 
 ---
 
 ## New Rules Codified
 
-| Rule | Added To |
-|---|---|
-| Store composition root must import feature internals directly (not barrels) to prevent cycles | [project-architecture.instructions.md](../../.github/instructions/project-architecture.instructions.md) |
-| `jest.mock()` factory functions cannot reference outer-scope variables; use inline values or `jest.requireActual()` | [ui-and-testing.instructions.md](../../.github/instructions/ui-and-testing.instructions.md) |
-| `@types/node` required for security audit tests using `fs`/`path` | [ui-and-testing.instructions.md](../../.github/instructions/ui-and-testing.instructions.md) |
-| Add design-spec colour tokens to `theme.ts` first, then reference by name — never implement a one-off hex literal | [component-standards-base.instructions.md](../../.github/instructions/component-standards-base.instructions.md) |
-| New theme tokens: `backgroundLogin`, `borderMedium` documented in token reference table | [component-standards-base.instructions.md](../../.github/instructions/component-standards-base.instructions.md) |
-| OTP/code fields: validate `length === N`, not just `!!value` | [security-and-review.instructions.md](../../.github/instructions/security-and-review.instructions.md) |
-| Numeric inputs: apply `replace(/[^0-9]/g, '')` filter in `onChange` handler — do not rely on `keyboardType` alone | [security-and-review.instructions.md](../../.github/instructions/security-and-review.instructions.md) |
-| Mock service responses must not contain PII — use synthetic values (`user@example.com`, `+1234567890`) | [security-and-review.instructions.md](../../.github/instructions/security-and-review.instructions.md) |
+| Rule                                                                                                                | Added To                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Store composition root must import feature internals directly (not barrels) to prevent cycles                       | [project-architecture.instructions.md](../../.github/instructions/project-architecture.instructions.md)         |
+| `jest.mock()` factory functions cannot reference outer-scope variables; use inline values or `jest.requireActual()` | [ui-and-testing.instructions.md](../../.github/instructions/ui-and-testing.instructions.md)                     |
+| `@types/node` required for security audit tests using `fs`/`path`                                                   | [ui-and-testing.instructions.md](../../.github/instructions/ui-and-testing.instructions.md)                     |
+| Add design-spec colour tokens to `theme.ts` first, then reference by name — never implement a one-off hex literal   | [component-standards-base.instructions.md](../../.github/instructions/component-standards-base.instructions.md) |
+| New theme tokens: `backgroundLogin`, `borderMedium` documented in token reference table                             | [component-standards-base.instructions.md](../../.github/instructions/component-standards-base.instructions.md) |
+| OTP/code fields: validate `length === N`, not just `!!value`                                                        | [security-and-review.instructions.md](../../.github/instructions/security-and-review.instructions.md)           |
+| Numeric inputs: apply `replace(/[^0-9]/g, '')` filter in `onChange` handler — do not rely on `keyboardType` alone   | [security-and-review.instructions.md](../../.github/instructions/security-and-review.instructions.md)           |
+| Mock service responses must not contain PII — use synthetic values (`user@example.com`, `+1234567890`)              | [security-and-review.instructions.md](../../.github/instructions/security-and-review.instructions.md)           |
 
 ---
 
 ## Gate Performance
 
-| Gate | Result | Notes |
-|---|---|---|
-| SDLC_G2.3 Framework Rules | ⚠️ Warn → Fixed | 2 hardcoded hex violations. High-ROI gate for style enforcement. |
-| SDLC_G2.5 Security | ⚠️ Warn → Fixed | 3 input validation gaps + 1 PII mock leak. Highest ROI gate this run. |
-| SDLC_G3 Review | ❌ Fail → Fixed | 3 critical blockers (C1 saga effect, C2 atom extraction, C3 module placement). Code review remains the highest friction point. |
-| SDLC_G4 Testing | ⚠️ Warn → Fixed | 2 Jest config gaps (`jest.mock()` scope, `@types/node`). Branch coverage required dedicated render tests for pure JSX components. |
+| Gate                      | Result          | Notes                                                                                                                             |
+| ------------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| SDLC_G2.3 Framework Rules | ⚠️ Warn → Fixed | 2 hardcoded hex violations. High-ROI gate for style enforcement.                                                                  |
+| SDLC_G2.5 Security        | ⚠️ Warn → Fixed | 3 input validation gaps + 1 PII mock leak. Highest ROI gate this run.                                                             |
+| SDLC_G3 Review            | ❌ Fail → Fixed | 3 critical blockers (C1 saga effect, C2 atom extraction, C3 module placement). Code review remains the highest friction point.    |
+| SDLC_G4 Testing           | ⚠️ Warn → Fixed | 2 Jest config gaps (`jest.mock()` scope, `@types/node`). Branch coverage required dedicated render tests for pure JSX components. |
 
 ---
 

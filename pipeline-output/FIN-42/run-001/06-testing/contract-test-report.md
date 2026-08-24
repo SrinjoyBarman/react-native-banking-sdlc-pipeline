@@ -1,13 +1,15 @@
-# Contract Test Report — BKIEMOB-9
+# Contract Test Report — FIN-42
 
 **Status:** WARN
 
 **Summary:**
-- **Scope:** Verified service functions `requestOtp` and `authenticate` in [src/auth/services/authService.ts](src/auth/services/authService.ts#L1-L200) and tests in [src/auth/services/__tests__/authService.test.ts](src/auth/services/__tests__/authService.test.ts#L1-L400).
+
+- **Scope:** Verified service functions `requestOtp` and `authenticate` in [src/auth/services/authService.ts](src/auth/services/authService.ts#L1-L200) and tests in [src/auth/services/**tests**/authService.test.ts](src/auth/services/__tests__/authService.test.ts#L1-L400).
 - **Result:** `authenticate` has comprehensive contract tests (success, failure, edge cases). `requestOtp` has success-path tests but no failure-path tests and limited edge-case coverage. No untyped jest mocks were used.
 
 **Rule Results:**
-- **T1 (Test file exists):** ✅ PASS — test file present: [src/auth/services/__tests__/authService.test.ts](src/auth/services/__tests__/authService.test.ts#L1-L400)
+
+- **T1 (Test file exists):** ✅ PASS — test file present: [src/auth/services/**tests**/authService.test.ts](src/auth/services/__tests__/authService.test.ts#L1-L400)
 - **T2 (Success + Failure paths):** ⚠️ WARN —
   - `requestOtp`: only success paths tested; no failure/error-path tests (service currently always resolves).
   - `authenticate`: PASS — success path and multiple failure paths (invalid OTP lengths) are tested.
@@ -20,7 +22,7 @@
 
 - **`requestOtp`** (in [src/auth/services/authService.ts](src/auth/services/authService.ts#L1-L200))
   - Exports: `requestOtp` (returns resolved success after simulated delay).
-  - Tests present: success response test(s) in [src/auth/services/__tests__/authService.test.ts](src/auth/services/__tests__/authService.test.ts#L1-L400), including customer and staff user-type success checks.
+  - Tests present: success response test(s) in [src/auth/services/**tests**/authService.test.ts](src/auth/services/__tests__/authService.test.ts#L1-L400), including customer and staff user-type success checks.
   - Missing: no test asserting failure path (e.g., API error, network timeout) and no explicit malformed-input or empty-input edge-case tests.
   - Recommendation: add at least one contract test that asserts behavior under a simulated failure (e.g., mock ApiService rejection or simulate a timeout) and at least one edge-case test (empty mobile number or malformed payload). If the implementation is intentionally always successful, create a test documenting reason and add an explicit edge-case test (empty input) or update service to surface errors for invalid inputs, then test them.
 
@@ -31,15 +33,16 @@
   - Recommendation: keep as-is for contract requirements; consider adding a timeout/network error test when ApiService integration is introduced.
 
 **Action Items (recommended):**
+
 - Add a contract test file or new test cases for `requestOtp` covering at least:
   - A simulated failure path (mock ApiService rejection or throw) — to satisfy T2.
   - An edge-case such as empty `mobileNumber` or malformed `userType` — to satisfy T4.
 - If `requestOtp` is intentionally always successful in this mock POC, add a test documenting that behavior and include at least one edge-case test (e.g., empty mobileNumber) to avoid false confidence.
 
 **Files inspected:**
-- [src/auth/services/authService.ts](src/auth/services/authService.ts#L1-L200)
-- [src/auth/services/__tests__/authService.test.ts](src/auth/services/__tests__/authService.test.ts#L1-L400)
 
+- [src/auth/services/authService.ts](src/auth/services/authService.ts#L1-L200)
+- [src/auth/services/**tests**/authService.test.ts](src/auth/services/__tests__/authService.test.ts#L1-L400)
 
 ---
 
