@@ -1,7 +1,7 @@
 # FinVault Pipeline Dashboard
 
-**Feature**: FIN-9 — Mobile: Test MCP Integration: Dummy Login  
-**Run ID**: FIN-9/run-001  
+**Feature**: FIN-42 — Mobile: Test MCP Integration: Dummy Login  
+**Run ID**: FIN-42/run-001
 **Date**: 2026-07-17  
 **Total Duration**: 4 hours  
 **Total Cost**: ~$1.85  
